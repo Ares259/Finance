@@ -43,10 +43,23 @@ self.addEventListener('activate', event => {
 
 // Fetch
 self.addEventListener('fetch', event => {
+    if (event.request.method !== 'GET') return;
+
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                return response || fetch(event.request);
+        fetch(event.request)
+            .then(networkResponse => {
+                if (event.request.url.startsWith(self.location.origin)) {
+                    const responseClone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+                }
+                return networkResponse;
             })
+            .catch(() => caches.match(event.request))
     );
+});
+
+self.addEventListener('message', event => {
+    if (event.data && event.data.action === 'skipWaiting') {
+        self.skipWaiting();
+    }
 });
