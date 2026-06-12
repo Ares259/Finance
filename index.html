@@ -15,6 +15,13 @@
         <span class="badge">🔒 Enterprise Sandbox Mode</span>
     </header>
 
+    <nav class="top-nav">
+        <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">🏠<span>Main Hub</span></button>
+        <button class="nav-item" id="nav-recurring" onclick="showPage('recurring')">💰<span>Income</span></button>
+        <button class="nav-item" id="nav-analytics" onclick="showPage('analytics')">📊<span>Portfolio</span></button>
+        <button class="nav-item" id="nav-settings" onclick="showPage('settings')">⚙️<span>Settings</span></button>
+    </nav>
+
     <section id="dashboard-page" class="view-page">
         <div class="interval-selector">
             <button class="interval-btn" id="btn-day" onclick="changeInterval('day')">Daily</button>
@@ -30,7 +37,16 @@
                     <div id="dash-income" class="dash-val" style="color: var(--success);">$0.00</div>
                 </div>
                 <div class="dash-box">
-                    <div class="dash-label" id="dash-savings-label">Saved This Month (20%)</div>
+                    <div class="dash-label-row">
+                        <div class="dash-label" id="dash-savings-label">Savings Rate</div>
+                        <select id="savings-select" onchange="updateSavingsRule(this.value)">
+                            <option value="10">10%</option>
+                            <option value="15">15%</option>
+                            <option value="20" selected>20%</option>
+                            <option value="25">25%</option>
+                            <option value="30">30%</option>
+                        </select>
+                    </div>
                     <div id="dash-savings" class="dash-val" style="color: var(--primary);">$0.00</div>
                 </div>
                 <div class="dash-box">
@@ -42,15 +58,35 @@
                     <div id="dash-stocks" class="dash-val" style="color: var(--accent);">$0.00</div>
                 </div>
                 <div class="dash-box full-width">
-                    <div class="dash-label">Remaining Liquid Runway</div>
+                    <div class="dash-label" id="dash-budget-label">Money Balance</div>
                     <div id="dash-budget" class="dash-val">$0.00</div>
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <h2>Copilot Intelligence Budget Tracking</h2>
+            <h2>Budget Overview</h2>
+            <p class="budget-note">See how much you spent in each category compared to its budget limit.</p>
             <div id="copilot-budget-matrix" class="list-container"></div>
+        </div>
+
+        <div class="card">
+            <h2>Customize Budget Limits</h2>
+            <p class="budget-note">A budget limit is the maximum amount you want to spend in a category. Set your own limits so the app can warn you when spending gets close.</p>
+            <div class="form-row" style="align-items:center;">
+                <select id="budget-cat-select" onchange="renderBudgetLimitWidget()">
+                    <option value="Food">🍔 Food</option>
+                    <option value="Transport">🚗 Transport</option>
+                    <option value="Housing">🏠 Housing</option>
+                    <option value="Entertainment">🎬 Entertainment</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Health">🩺 Health</option>
+                    <option value="Education">📚 Education</option>
+                </select>
+                <input type="number" id="budget-limit-input" placeholder="New limit ($)" min="0" />
+                <button class="action-btn" onclick="saveBudgetLimit()">Save</button>
+            </div>
+            <div class="budget-limit-info" id="budget-limit-info"></div>
         </div>
 
         <div class="card">
@@ -109,7 +145,7 @@
 
     <section id="recurring-page" class="view-page" style="display:none;">
         <div class="card">
-            <h2>Inflow Engine <span>+ Revenue Stream</span></h2>
+            <h2>Income Streams <span>Recurring Revenue</span></h2>
             <div class="form-row">
                 <input type="text" id="inc-name" placeholder="Source Label">
                 <input type="number" id="inc-amount" placeholder="Amount ($)">
@@ -124,7 +160,7 @@
         </div>
 
         <div class="card">
-            <h2>Fixed Commitments <span>Recurring Orders</span></h2>
+            <h2>Monthly Payments <span>Recurring Costs</span></h2>
             <div class="form-row">
                 <input type="text" id="rec-name" placeholder="Subscription/Supply Label">
                 <input type="number" id="rec-amount" placeholder="Cost ($)">
@@ -146,7 +182,7 @@
             </div>
         </div>
         <div class="card">
-            <h2>Capital Asset Pools <span>Equities Portfolio</span></h2>
+            <h2>Investment Portfolio <span>Track assets and positions</span></h2>
             <div class="form-row">
                 <input type="text" id="stock-ticker" placeholder="Ticker Symbol">
                 <input type="number" id="stock-shares" placeholder="Shares Count">
@@ -188,13 +224,6 @@
             </div>
         </div>
     </section>
-
-    <nav class="bottom-nav">
-        <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">🏠<span>Main Hub</span></button>
-        <button class="nav-item" id="nav-recurring" onclick="showPage('recurring')">🔄<span>Fixed</span></button>
-        <button class="nav-item" id="nav-analytics" onclick="showPage('analytics')">📊<span>Assets</span></button>
-        <button class="nav-item" id="nav-settings" onclick="showPage('settings')">⚙️<span>Config</span></button>
-    </nav>
 </div>
 
 <script src="js/app.js?v=4.0"></script>

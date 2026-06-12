@@ -10,6 +10,7 @@ let coreLedger = {
     fixedOutflows: [],
     variableOutflows: [],
     assetPositions: [],
+    categoryLimits: {},
     quickTemplates: [
         { id: 't1', label: '🍔 Food', amount: 15.00 },
         { id: 't2', label: '🚗 Transit', amount: 25.00 }
@@ -53,6 +54,15 @@ window.addEventListener('DOMContentLoaded', () => {
     if (themeSelectDropdown) {
         themeSelectDropdown.value = currentTheme;
     }
+
+    if (!coreLedger.categoryLimits || Object.keys(coreLedger.categoryLimits).length === 0) {
+        coreLedger.categoryLimits = {};
+    }
+    Object.keys(categoryMetadata).forEach(cat => {
+        if (coreLedger.categoryLimits[cat] === undefined) {
+            coreLedger.categoryLimits[cat] = categoryMetadata[cat].limit;
+        }
+    });
     
     // 3. Kick off rendering pipelines
     renderAllInterfaceLists();
@@ -114,7 +124,10 @@ function runCalculations() {
     budgetBox.innerText = formatCurrency(netLiquidCapital);
     budgetBox.style.color = netLiquidCapital < 0 ? 'var(--danger)' : 'var(--success)';
 
-    document.getElementById('dash-savings-label').innerText = `Saved This Month (${coreLedger.savingsPercent}%)`;
+    const intervalLabel = coreLedger.currentViewInterval === 'day' ? 'Daily' : coreLedger.currentViewInterval === 'year' ? 'Yearly' : 'Monthly';
+    document.getElementById('dash-budget-label').innerText = `Money Balance (${intervalLabel})`;
+    const savingsSelect = document.getElementById('savings-select');
+    if (savingsSelect) savingsSelect.value = coreLedger.savingsPercent;
 
     renderCopilotCategoryMetrics();
 }
@@ -132,25 +145,65 @@ function renderCopilotCategoryMetrics() {
 
     Object.keys(categoryMetadata).forEach(cat => {
         const spent = actualsMap[cat];
-        const limit = categoryMetadata[cat].limit;
+        const limit = getCategoryLimit(cat);
         const icon = categoryMetadata[cat].icon;
         const percentage = Math.min((spent / limit) * 100, 100).toFixed(0);
+        const overBudget = spent > limit;
         
         let barColor = 'var(--primary)';
         if (percentage >= 90) barColor = 'var(--danger)';
         else if (percentage >= 70) barColor = 'var(--accent)';
 
         matrix.innerHTML += `
-            <div style="margin-bottom:10px; background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--card-border);">
-                <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:4px;">
-                    <span><b>${icon} ${cat}</b> <small style="color:var(--text-muted);">(${percentage}%)</small></span>
-                    <span style="font-weight:600;">${formatCurrency(spent)} / ${formatCurrency(limit)}</span>
+            <div style="margin-bottom:10px; background:rgba(255,255,255,0.02); padding:14px; border-radius:14px; border:1px solid var(--card-border);">
+                <div style="display:flex; justify-content:space-between; gap:12px; font-size:0.9rem; margin-bottom:8px;">
+                    <div>
+                        <div style="font-weight:700; margin-bottom:4px;">${icon} ${cat} Budget</div>
+                        <div style="font-size:0.82rem; color:var(--text-muted);">Limit: ${formatCurrency(limit)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:700; color:${overBudget ? 'var(--danger)' : 'var(--success)'};">${overBudget ? 'Over budget' : 'Under budget'}</div>
+                        <div style="font-size:0.82rem; color:var(--text-muted);">${formatCurrency(spent)} spent</div>
+                    </div>
                 </div>
-                <div style="width:100%; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
+                <div style="width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden;">
                     <div style="width:${percentage}%; height:100%; background:${barColor};"></div>
                 </div>
+                <div style="margin-top:8px; font-size:0.82rem; color:var(--text-muted);">${percentage}% of budget used</div>
             </div>`;
     });
+}
+
+function getCategoryLimit(category) {
+    return coreLedger.categoryLimits && coreLedger.categoryLimits[category] !== undefined
+        ? coreLedger.categoryLimits[category]
+        : categoryMetadata[category]?.limit || 0;
+}
+
+function saveBudgetLimit() {
+    const category = document.getElementById('budget-cat-select').value;
+    const value = parseFloat(document.getElementById('budget-limit-input').value);
+    if (!category || isNaN(value) || value <= 0) {
+        document.getElementById('budget-limit-info').innerText = 'Enter a valid positive amount to save a new limit.';
+        return;
+    }
+
+    coreLedger.categoryLimits[category] = value;
+    localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
+    renderCopilotCategoryMetrics();
+    renderBudgetLimitWidget();
+    document.getElementById('budget-limit-info').innerText = `${category} limit saved as ${formatCurrency(value)}.`;
+}
+
+function renderBudgetLimitWidget() {
+    const category = document.getElementById('budget-cat-select').value;
+    const limitInput = document.getElementById('budget-limit-input');
+    const info = document.getElementById('budget-limit-info');
+    if (!category || !limitInput || !info) return;
+
+    const currentLimit = getCategoryLimit(category);
+    limitInput.value = currentLimit;
+    info.innerText = `Current ${category} budget limit is ${formatCurrency(currentLimit)}.`;
 }
 
 function formatCurrency(val) {
@@ -345,6 +398,7 @@ function renderAllInterfaceLists() {
     renderFixedOutflows();
     renderVariableExpenseList();
     renderStockList();
+    renderBudgetLimitWidget();
 }
 
 function clearFields(arr) { arr.forEach(f => { const el = document.getElementById(f); if(el) el.value = ''; }); }
