@@ -49,12 +49,65 @@
         </div>
 
         <div class="card">
-            <h2>Recent Transactions View</h2>
-            <div id="dashboard-recent-list" class="list-container"></div>
+            <h2>Copilot Intelligence Budget Tracking</h2>
+            <div id="copilot-budget-matrix" class="list-container"></div>
+        </div>
+
+        <div class="card">
+            <h2>Log New Outflow <span>Instant Ledger Entry</span></h2>
+            <div class="dash-label" style="margin-bottom: 6px;">Quick Templates:</div>
+            <div id="quick-chips-wrapper" class="quick-chips-container"></div>
+
+            <div class="form-row">
+                <input type="text" id="exp-name" placeholder="Expense description">
+                <input type="number" id="exp-amount" placeholder="Amount ($)">
+                <select id="exp-category">
+                    <option value="Food">🍔 Food</option>
+                    <option value="Transport">🚗 Transport</option>
+                    <option value="Housing">🏠 Housing</option>
+                    <option value="Entertainment">🎬 Entertainment</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Health">🩺 Health</option>
+                    <option value="Education">📚 Education</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <input type="date" id="exp-date">
+                <input type="time" id="exp-time">
+            </div>
+            <div class="form-row">
+                <button class="action-btn" style="flex:2;" onclick="addCustomExpense()">Log Transaction</button>
+                <button class="action-btn secondary" style="flex:1;" onclick="saveAsNewTemplate()">Save Template</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Variable Outflows <span>Chronological Ledger</span></h2>
+            <div class="form-row" style="margin-top:5px;">
+                <input type="text" id="search-box" placeholder="🔍 Search description..." oninput="renderVariableExpenseList()">
+                <select id="filter-category" onchange="renderVariableExpenseList()">
+                    <option value="ALL">All Categories</option>
+                    <option value="Food">🍔 Food</option>
+                    <option value="Transport">🚗 Transport</option>
+                    <option value="Housing">🏠 Housing</option>
+                    <option value="Entertainment">🎬 Entertainment</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Health">🩺 Health</option>
+                    <option value="Education">📚 Education</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 5px;">
+                <button class="interval-btn active" id="filter-sw-all" onclick="setVerificationFilter('ALL')" style="font-size:0.75rem; padding:4px 10px;">All</button>
+                <button class="interval-btn" id="filter-sw-new" onclick="setVerificationFilter('NEW')" style="font-size:0.75rem; padding:4px 10px;">New 🟡</button>
+                <button class="interval-btn" id="filter-sw-reviewed" onclick="setVerificationFilter('REVIEWED')" style="font-size:0.75rem; padding:4px 10px;">Reviewed ✅</button>
+            </div>
+            
+            <div id="expense-day-matrix" class="list-container" style="margin-top:15px;"></div>
         </div>
     </section>
 
-    <section id="transactions-page" class="view-page" style="display:none;">
+    <section id="recurring-page" class="view-page" style="display:none;">
         <div class="card">
             <h2>Inflow Engine <span>+ Revenue Stream</span></h2>
             <div class="form-row">
@@ -83,50 +136,6 @@
             </div>
             <div id="recurring-list" class="list-container"></div>
         </div>
-
-        <div class="card">
-            <h2>Variable Outflows <span>Chronological Ledger</span></h2>
-            <div class="dash-label" style="margin-bottom: 6px;">Quick Templates:</div>
-            <div id="quick-chips-wrapper" class="quick-chips-container"></div>
-
-            <div class="form-row">
-                <input type="text" id="exp-name" placeholder="Expense description">
-                <input type="number" id="exp-amount" placeholder="Amount ($)">
-                <select id="exp-category">
-                    <option value="Food">🍔 Food</option>
-                    <option value="Transport">🚗 Transport</option>
-                    <option value="Housing">🏠 Housing</option>
-                    <option value="Entertainment">🎬 Entertainment</option>
-                    <option value="Shopping">🛍️ Shopping</option>
-                    <option value="Health">🩺 Health</option>
-                    <option value="Education">📚 Education</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <input type="date" id="exp-date">
-                <input type="time" id="exp-time">
-            </div>
-            <div class="form-row">
-                <button class="action-btn" style="flex:2;" onclick="addCustomExpense()">Log Transaction</button>
-                <button class="action-btn secondary" style="flex:1;" onclick="saveAsNewTemplate()">Save Template</button>
-            </div>
-
-            <div class="form-row" style="margin-top:15px;">
-                <input type="text" id="search-box" placeholder="🔍 Search description..." oninput="renderVariableExpenseList()">
-                <select id="filter-category" onchange="renderVariableExpenseList()">
-                    <option value="ALL">All Categories</option>
-                    <option value="Food">🍔 Food</option>
-                    <option value="Transport">🚗 Transport</option>
-                    <option value="Housing">🏠 Housing</option>
-                    <option value="Entertainment">🎬 Entertainment</option>
-                    <option value="Shopping">🛍️ Shopping</option>
-                    <option value="Health">🩺 Health</option>
-                    <option value="Education">📚 Education</option>
-                </select>
-            </div>
-            
-            <div id="expense-day-matrix" class="list-container" style="margin-top:15px;"></div>
-        </div>
     </section>
 
     <section id="analytics-page" class="view-page" style="display:none;">
@@ -148,20 +157,18 @@
         </div>
     </section>
 
-    <section id="goals-page" class="view-page" style="display:none;">
-        <div class="card">
-            <h2>Strategic Savings Goals</h2>
-            <div class="form-row">
-                <input type="text" id="goal-name" placeholder="Goal (e.g., Emergency Fund)">
-                <input type="number" id="goal-target" placeholder="Target Amount ($)">
-                <input type="number" id="goal-current" placeholder="Current Savings ($)">
-                <button class="action-btn" onclick="addNewGoal()">Create</button>
-            </div>
-            <div id="goals-matrix-container"></div>
-        </div>
-    </section>
-
     <section id="settings-page" class="view-page" style="display:none;">
+        <div class="card">
+            <h2>Ecosystem Preferences</h2>
+            <div class="theme-select-row">
+                <label class="dash-label">Application UI Theme Framework</label>
+                <select id="theme-select" onchange="applyTheme(this.value)">
+                    <option value="dark">Space Dark Mode</option>
+                    <option value="light">Reflective Light Mode</option>
+                </select>
+            </div>
+        </div>
+
         <div class="card">
             <h2>Financial Strategy Configuration</h2>
             <div class="form-row" style="justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -170,20 +177,6 @@
                     <input type="number" id="strategy-savings-pct" min="0" max="100" style="max-width: 80px; text-align: center;" oninput="updateSavingsRule(this.value)">
                     <span style="font-weight: bold; color: var(--primary);">%</span>
                 </div>
-            </div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
-                Adjusting this updates your required safety reserves instantly, scaling your remaining disposable runway limits.
-            </p>
-        </div>
-
-        <div class="card">
-            <h2>Ecosystem Preferences</h2>
-            <div class="form-row" style="justify-content: space-between; align-items: center;">
-                <label class="dash-label">Application UI Theme Color Framework</label>
-                <select id="theme-select" style="max-width:200px;" onchange="applyTheme(this.value)">
-                    <option value="dark">Space Dark Mode</option>
-                    <option value="light">Reflective Light Mode</option>
-                </select>
             </div>
         </div>
         
@@ -197,21 +190,24 @@
     </section>
 
     <nav class="bottom-nav">
-        <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">🏠<span>Dash</span></button>
-        <button class="nav-item" id="nav-transactions" onclick="showPage('transactions')">💳<span>Ledger</span></button>
-        <button class="nav-item" id="nav-analytics" onclick="showPage('analytics')">📊<span>Charts</span></button>
-        <button class="nav-item" id="nav-goals" onclick="showPage('goals')">🎯<span>Targets</span></button>
+        <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">🏠<span>Main Hub</span></button>
+        <button class="nav-item" id="nav-recurring" onclick="showPage('recurring')">🔄<span>Fixed</span></button>
+        <button class="nav-item" id="nav-analytics" onclick="showPage('analytics')">📊<span>Assets</span></button>
         <button class="nav-item" id="nav-settings" onclick="showPage('settings')">⚙️<span>Config</span></button>
     </nav>
 </div>
 
 <script src="js/app.js?v=4.0"></script>
 <script src="js/charts.js"></script>
-<script>
-    // Register Service Worker for PWA compliance
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js').catch(err => console.log("SW registration bypassed", err));
-    }
+
+    <script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+        .register('./service-worker.js')
+        .then(() => console.log('Service Worker Registered'))
+        .catch(err => console.log('Service Worker Error:', err));
+}
 </script>
+
 </body>
 </html>
