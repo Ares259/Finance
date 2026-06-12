@@ -1,0 +1,143 @@
+/* APPLICATION VARIABLE PARAMETERS */
+:root[data-theme="dark"] {
+    --bg-color: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.7);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #38bdf8;
+    --success: #34d399;
+    --danger: #f87171;
+    --accent: #c084fc;
+    --warning: #fbbf24;
+    --nav-bg: rgba(15, 23, 42, 0.9);
+}
+
+:root[data-theme="light"] {
+    --bg-color: #f1f5f9;
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --card-border: rgba(15, 23, 42, 0.08);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --primary: #0284c7;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --accent: #9333ea;
+    --warning: #d97706;
+    --nav-bg: rgba(255, 255, 255, 0.95);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-main);
+    margin: 0;
+    padding: 20px 15px 90px 15px; /* Bottom padding accounts for fixed navigation spacing */
+    min-height: 100vh;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.container { max-width: 700px; margin: 0 auto; }
+header { text-align: center; margin-bottom: 20px; }
+header h1 { font-size: 2rem; font-weight: 800; margin: 0; color: var(--primary); }
+
+.badge {
+    background: rgba(56, 189, 248, 0.1); color: var(--primary);
+    padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--card-border);
+}
+
+.card {
+    background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border); border-radius: 14px; padding: 20px; margin-bottom: 20px;
+}
+
+h2 { font-size: 1.15rem; margin-top: 0; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+h2 span { font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }
+
+.dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.dash-box { background: rgba(15, 23, 42, 0.05); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; }
+.dark data-theme .dash-box { background: rgba(0, 0, 0, 0.2); }
+.dash-box.full-width { grid-column: span 2; }
+.dash-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.dash-val { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+
+.form-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+input, select { background: rgba(15, 23, 42, 0.03); border: 1px solid var(--card-border); color: var(--text-main); padding: 10px; border-radius: 8px; font-size: 0.9rem; flex: 1; min-width: 100px; box-sizing: border-box; }
+:root[data-theme="dark"] input, :root[data-theme="dark"] select { background: rgba(15, 23, 42, 0.4); }
+
+button.action-btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+button.action-btn.secondary { background: transparent; color: var(--text-main); border: 1px solid var(--card-border); }
+
+/* PERSISTENT BOTTOM NAVIGATION ARCHITECTURE */
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+    background: var(--nav-bg); border-top: 1px solid var(--card-border);
+    display: flex; justify-content: space-around; align-items: center; z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+.nav-item {
+    background: transparent; border: none; color: var(--text-muted);
+    display: flex; flex-direction: column; align-items: center; font-size: 1.2rem;
+    cursor: pointer; width: 20%; font-weight: 500;
+}
+.nav-item span { font-size: 0.65rem; margin-top: 2px; }
+.nav-item.active { color: var(--primary); font-weight: 700; }
+
+.quick-chips-container { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.quick-chip-wrapper { display: inline-flex; align-items: center; background: rgba(15, 23, 42, 0.04); border: 1px solid var(--card-border); border-radius: 16px; padding: 4px 8px; gap: 4px; font-size: 0.8rem; }
+.quick-chip-text { cursor: pointer; }
+.quick-chip-del { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 0 2px; }
+
+.day-group { border: 1px solid var(--card-border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+.day-header { background: rgba(15, 23, 42, 0.02); padding: 8px 12px; font-size: 0.8rem; font-weight: 700; display: flex; justify-content: space-between; border-bottom: 1px solid var(--card-border); }
+.row-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 0.85rem; border-bottom: 1px solid var(--card-border); }
+
+/* PROGRESS METRICS INTERACTION */
+progress { width: 100%; height: 12px; border-radius: 6px; overflow: hidden; border: none; background: rgba(15,23,42,0.05); }
+progress::-webkit-progress-bar { background: rgba(15,23,42,0.05); }
+progress::-webkit-progress-value { background: var(--success); }
+
+@media (max-width: 500px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .dash-box.full-width { grid-column: span 1; }
+    .form-row { flex-direction: column; }
+}
+
+/* ==========================================================================
+   INTERVAL SELECTOR ENGINE STYLES
+   ========================================================================== */
+.interval-selector { 
+    display: flex; 
+    background: rgba(15, 23, 42, 0.05); 
+    border: 1px solid var(--card-border); 
+    padding: 4px; 
+    border-radius: 12px; 
+    margin: 20px 0; 
+}
+
+:root[data-theme="dark"] .interval-selector { 
+    background: rgba(15, 23, 42, 0.6); 
+}
+
+.interval-btn { 
+    flex: 1; 
+    background: transparent; 
+    border: none; 
+    color: var(--text-muted); 
+    padding: 10px; 
+    font-weight: 600; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+    font-size: 0.9rem;
+}
+
+.interval-btn.active { 
+    background: var(--primary); 
+    color: #0f172a; 
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2); 
+}
+
+:root[data-theme="light"] .interval-btn.active { 
+    color: #ffffff; 
+}
