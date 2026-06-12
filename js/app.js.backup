@@ -1,0 +1,647 @@
+// ==========================================================================
+// CORE CONSOLE ARCHITECTURE SETUP
+// ==========================================================================
+let coreLedger = {
+    currentViewInterval: 'month',
+    savingsPercent: 20,
+    currentVerificationFilter: 'ALL', 
+    activeThemePreference: 'dark', // Track theme state inside initialization
+    inflows: [],
+    fixedOutflows: [],
+    variableOutflows: [],
+    assetPositions: [],
+    categoryLimits: {},
+    oneTimeTransactions: [],
+    quickTemplates: [
+        { id: 't1', label: '🍔 Food', amount: 15.00 },
+        { id: 't2', label: '🚗 Transit', amount: 25.00 }
+    ]
+};
+
+const annualConversionMap = { day: 365, week: 52.14, month: 12, year: 1 };
+
+const categoryMetadata = {
+    'Food': { icon: '🍔', limit: 400 },
+    'Transport': { icon: '🚗', limit: 250 },
+    'Housing': { icon: '🏠', limit: 1200 },
+    'Entertainment': { icon: '🎬', limit: 150 },
+    'Shopping': { icon: '🛍️', limit: 300 },
+    'Health': { icon: '🩺', limit: 100 },
+    'Education': { icon: '📚', limit: 100 }
+};
+
+// SINGLE MASTER INITIALIZATION DECK
+window.addEventListener('DOMContentLoaded', () => {
+    setDefaultTimeInputs();
+    
+    // 1. Recover core engine data structures
+    const stored = localStorage.getItem('apex_ledger_v4');
+    if (stored) {
+        coreLedger = JSON.parse(stored);
+    }
+    
+    // Fallback checks for safe runtimes
+    if (coreLedger.savingsPercent === undefined) coreLedger.savingsPercent = 20;
+    if (!coreLedger.currentVerificationFilter) coreLedger.currentVerificationFilter = 'ALL';
+    
+    const strategyInput = document.getElementById('strategy-savings-pct');
+    if (strategyInput) strategyInput.value = coreLedger.savingsPercent;
+    
+    // 2. Recover system theme profiles safely inside single loop
+    const currentTheme = coreLedger.activeThemePreference || 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    
+    const themeSelectDropdown = document.getElementById('theme-select');
+    if (themeSelectDropdown) {
+        themeSelectDropdown.value = currentTheme;
+    }
+
+    if (!coreLedger.categoryLimits || Object.keys(coreLedger.categoryLimits).length === 0) {
+        coreLedger.categoryLimits = {};
+    }
+    Object.keys(categoryMetadata).forEach(cat => {
+        if (coreLedger.categoryLimits[cat] === undefined) {
+            coreLedger.categoryLimits[cat] = categoryMetadata[cat].limit;
+        }
+    });
+    
+    // 3. Kick off rendering pipelines
+    renderAllInterfaceLists();
+    runCalculations();
+    if(window.renderAnalyticsChart) window.renderAnalyticsChart();
+    renderIncomeSourcesList();
+    renderSpendingBreakdown();
+});
+
+function setDefaultTimeInputs() {
+    const today = new Date();
+    document.getElementById('exp-date').value = today.toISOString().slice(0, 10);
+    document.getElementById('exp-time').value = today.toTimeString().slice(0, 5);
+}
+
+function showPage(pageId) {
+    document.querySelectorAll('.view-page').forEach(page => page.style.display = 'none');
+    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+    
+    document.getElementById(`${pageId}-page`).style.display = 'block';
+    document.getElementById(`nav-${pageId}`).classList.add('active');
+    
+    if(pageId === 'analytics' && window.renderAnalyticsChart) {
+        setTimeout(() => window.renderAnalyticsChart(), 100);
+    }
+}
+
+function changeInterval(targetFrame) {
+    coreLedger.currentViewInterval = targetFrame;
+    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`btn-${targetFrame}`).classList.add('active');
+    document.getElementById('view-title').innerText = targetFrame.charAt(0).toUpperCase() + targetFrame.slice(1);
+    runCalculations();
+}
+
+function updateSavingsRule(val) {
+    let numericVal = parseInt(val);
+    if (isNaN(numericVal) || numericVal < 0) numericVal = 0;
+    if (numericVal > 100) numericVal = 100;
+    coreLedger.savingsPercent = numericVal;
+    runCalculations();
+}
+
+// ==========================================================================
+// CALCULATOR INTERFACES & COPILOT PROGRESS RENDERING
+// ==========================================================================
+function runCalculations() {
+    localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
+
+    let totalAnnualIncome = coreLedger.inflows.reduce((acc, curr) => acc + (curr.amount * annualConversionMap[curr.frequency]), 0);
+    let totalAnnualFixed = coreLedger.fixedOutflows.reduce((acc, curr) => acc + (curr.amount * annualConversionMap[curr.frequency]), 0);
+    let currentIntervalVariable = coreLedger.variableOutflows.reduce((acc, curr) => acc + curr.amount, 0);
+    let totalAssets = coreLedger.assetPositions.reduce((acc, curr) => acc + (curr.shares * (curr.currentPrice || curr.price || 0)), 0);
+    let totalOneTime = coreLedger.oneTimeTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+
+    const viewIncome = (totalAnnualIncome + totalOneTime) / annualConversionMap[coreLedger.currentViewInterval];
+    const viewFixed = totalAnnualFixed / annualConversionMap[coreLedger.currentViewInterval];
+    const targetSavings = viewIncome * (coreLedger.savingsPercent / 100);
+    const netLiquidCapital = viewIncome - targetSavings - (viewFixed + currentIntervalVariable);
+
+    document.getElementById('dash-income').innerText = formatCurrency(viewIncome);
+    document.getElementById('dash-savings').innerText = formatCurrency(targetSavings);
+    document.getElementById('dash-burn').innerText = formatCurrency(viewFixed + currentIntervalVariable);
+    document.getElementById('dash-stocks').innerText = formatCurrency(totalAssets);
+    
+    const budgetBox = document.getElementById('dash-budget');
+    budgetBox.innerText = formatCurrency(netLiquidCapital);
+    budgetBox.style.color = netLiquidCapital < 0 ? 'var(--danger)' : 'var(--success)';
+
+    const intervalLabel = coreLedger.currentViewInterval === 'day' ? 'Daily' : coreLedger.currentViewInterval === 'year' ? 'Yearly' : 'Monthly';
+    document.getElementById('dash-budget-label').innerText = `Money Balance (${intervalLabel})`;
+    const savingsSelect = document.getElementById('savings-select');
+    if (savingsSelect) savingsSelect.value = coreLedger.savingsPercent;
+
+    renderCopilotCategoryMetrics();
+    renderPortfolioSummary();
+    renderIncomeSourcesList();
+    renderSpendingBreakdown();
+}
+
+function toggleIncomeView(viewType) {
+    const listView = document.getElementById('income-view-list');
+    const chartView = document.getElementById('income-view-chart');
+    const buttons = document.querySelectorAll('[data-view="income-list"], [data-view="income-chart"]');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    if(viewType === 'list') {
+        listView.style.display = 'block';
+        chartView.style.display = 'none';
+        document.querySelector('[data-view="income-list"]').classList.add('active');
+    } else {
+        listView.style.display = 'none';
+        chartView.style.display = 'block';
+        document.querySelector('[data-view="income-chart"]').classList.add('active');
+        renderIncomeChart();
+    }
+}
+
+function toggleSpendingView(viewType) {
+    const listView = document.getElementById('spending-view-list');
+    const chartView = document.getElementById('spending-view-chart');
+    const buttons = document.querySelectorAll('[data-view="spending-list"], [data-view="spending-chart"]');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    if(viewType === 'list') {
+        listView.style.display = 'block';
+        chartView.style.display = 'none';
+        document.querySelector('[data-view="spending-list"]').classList.add('active');
+    } else {
+        listView.style.display = 'none';
+        chartView.style.display = 'block';
+        document.querySelector('[data-view="spending-chart"]').classList.add('active');
+        renderSpendingChart();
+    }
+}
+
+function renderIncomeSourcesList() {
+    const list = document.getElementById('income-sources-list');
+    if(!list) return;
+    list.innerHTML = '';
+    
+    if(coreLedger.inflows.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">No income sources added yet.</div>';
+        return;
+    }
+    
+    const totalIncome = coreLedger.inflows.reduce((acc, curr) => acc + curr.amount, 0);
+    coreLedger.inflows.forEach(income => {
+        const percent = ((income.amount / totalIncome) * 100).toFixed(1);
+        list.innerHTML += `
+            <div style="margin-bottom:12px; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--card-border);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1;">
+                        <div style="font-weight:700; margin-bottom:4px;">💰 ${income.desc}</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">From ${income.frequency} income</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:700; color:var(--success);">${formatCurrency(income.amount)}</div>\n                        <div style="font-size:0.85rem; color:var(--text-muted);">${percent}% of total</div>
+                    </div>\n                </div>\n            </div>`;\n    });\n}\n\nfunction renderIncomeChart() {\n    const canvas = document.getElementById('incomeChart');\n    if(!canvas) return;\n    \n    const ctx = canvas.getContext('2d');\n    let incomeChartReference = window.incomeChartRef;\n    \n    const labels = coreLedger.inflows.map(i => i.desc);\n    const values = coreLedger.inflows.map(i => i.amount);\n    const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316'];\n    \n    if(incomeChartReference) {\n        incomeChartReference.destroy();\n    }\n    \n    window.incomeChartRef = new Chart(ctx, {\n        type: 'doughnut',\n        data: {\n            labels: labels,\n            datasets: [{\n                data: values,\n                backgroundColor: colors.slice(0, labels.length),\n                borderColor: 'rgba(15, 23, 42, 0.92)',\n                borderWidth: 3\n            }]\n        },\n        options: {\n            responsive: true,\n            maintainAspectRatio: true,\n            plugins: {\n                legend: { position: 'bottom', labels: { color: 'var(--text-normal)' } }\n            }\n        }\n    });\n}\n\nfunction renderSpendingBreakdown() {\n    const list = document.getElementById('spending-breakdown-list');\n    if(!list) return;\n    list.innerHTML = '';\n    \n    const breakdown = {};\n    coreLedger.variableOutflows.forEach(item => {\n        if(!breakdown[item.category]) breakdown[item.category] = 0;\n        breakdown[item.category] += item.amount;\n    });\n    \n    if(Object.keys(breakdown).length === 0) {\n        list.innerHTML = '<div style=\"text-align:center; color:var(--text-muted); padding:20px;\">No spending recorded yet.</div>';\n        return;\n    }\n    \n    const totalSpending = Object.values(breakdown).reduce((a, b) => a + b, 0);\n    \n    Object.entries(breakdown).forEach(([category, amount]) => {\n        const icon = categoryMetadata[category]?.icon || '💸';\n        const percent = ((amount / totalSpending) * 100).toFixed(1);\n        list.innerHTML += `\n            <div style=\"margin-bottom:12px; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--card-border);\">\n                <div style=\"display:flex; justify-content:space-between; align-items:center;\">\n                    <div style=\"flex:1;\">\n                        <div style=\"font-weight:700; margin-bottom:4px;\">${icon} ${category}</div>\n                    </div>\n                    <div style=\"text-align:right;\">\n                        <div style=\"font-weight:700; color:var(--danger);\">${formatCurrency(amount)}</div>\n                        <div style=\"font-size:0.85rem; color:var(--text-muted);\">${percent}% of spending</div>\n                    </div>\n                </div>\n            </div>`;\n    });\n}\n\nfunction renderSpendingChart() {\n    const canvas = document.getElementById('spendingChart');\n    if(!canvas) return;\n    \n    const ctx = canvas.getContext('2d');\n    let spendingChartReference = window.spendingChartRef;\n    \n    const breakdown = {};\n    coreLedger.variableOutflows.forEach(item => {\n        if(!breakdown[item.category]) breakdown[item.category] = 0;\n        breakdown[item.category] += item.amount;\n    });\n    \n    const labels = Object.keys(breakdown);\n    const values = Object.values(breakdown);\n    const colors = labels.map(cat => {\n        const colorMap = {\n            'Food': '#fbbf24',\n            'Transport': '#38bdf8',\n            'Housing': '#f87171',\n            'Entertainment': '#c084fc',\n            'Shopping': '#34d399',\n            'Health': '#f43f5e',\n            'Education': '#60a5fa'\n        };\n        return colorMap[cat] || '#94a3b8';\n    });\n    \n    if(spendingChartReference) {\n        spendingChartReference.destroy();\n    }\n    \n    window.spendingChartRef = new Chart(ctx, {\n        type: 'doughnut',\n        data: {\n            labels: labels,\n            datasets: [{\n                data: values,\n                backgroundColor: colors,\n                borderColor: 'rgba(15, 23, 42, 0.92)',\n                borderWidth: 3\n            }]\n        },\n        options: {\n            responsive: true,\n            maintainAspectRatio: true,\n            plugins: {\n                legend: { position: 'bottom', labels: { color: 'var(--text-normal)' } }\n            }\n        }\n    });\n}
+
+function renderCopilotCategoryMetrics() {
+    const matrix = document.getElementById('copilot-budget-matrix');
+    if (!matrix) return;
+    matrix.innerHTML = '';
+
+    let actualsMap = {};
+    Object.keys(categoryMetadata).forEach(cat => actualsMap[cat] = 0);
+    coreLedger.variableOutflows.forEach(item => {
+        if (actualsMap[item.category] !== undefined) actualsMap[item.category] += item.amount;
+    });
+
+    Object.keys(categoryMetadata).forEach(cat => {
+        const spent = actualsMap[cat];
+        const limit = getCategoryLimit(cat);
+        const icon = categoryMetadata[cat].icon;
+        const percentage = Math.min((spent / limit) * 100, 100).toFixed(0);
+        const overBudget = spent > limit;
+        
+        let barColor = 'var(--primary)';
+        if (percentage >= 90) barColor = 'var(--danger)';
+        else if (percentage >= 70) barColor = 'var(--accent)';
+
+        matrix.innerHTML += `
+            <div style="margin-bottom:10px; background:rgba(255,255,255,0.02); padding:14px; border-radius:14px; border:1px solid var(--card-border);">
+                <div style="display:flex; justify-content:space-between; gap:12px; font-size:0.9rem; margin-bottom:8px;">
+                    <div>
+                        <div style="font-weight:700; margin-bottom:4px;">${icon} ${cat} Budget</div>
+                        <div style="font-size:0.82rem; color:var(--text-muted);">Limit: ${formatCurrency(limit)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:700; color:${overBudget ? 'var(--danger)' : 'var(--success)'};">${overBudget ? 'Over budget' : 'Under budget'}</div>
+                        <div style="font-size:0.82rem; color:var(--text-muted);">${formatCurrency(spent)} spent</div>
+                    </div>
+                </div>
+                <div style="width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden;">
+                    <div style="width:${percentage}%; height:100%; background:${barColor};"></div>
+                </div>
+                <div style="margin-top:8px; font-size:0.82rem; color:var(--text-muted);">${percentage}% of budget used</div>
+            </div>`;
+    });
+}
+
+function getCategoryLimit(category) {
+    return coreLedger.categoryLimits && coreLedger.categoryLimits[category] !== undefined
+        ? coreLedger.categoryLimits[category]
+        : categoryMetadata[category]?.limit || 0;
+}
+
+function saveBudgetLimit() {
+    const category = document.getElementById('budget-cat-select').value;
+    const value = parseFloat(document.getElementById('budget-limit-input').value);
+    if (!category || isNaN(value) || value <= 0) {
+        document.getElementById('budget-limit-info').innerText = 'Enter a valid positive amount to save a new limit.';
+        return;
+    }
+
+    coreLedger.categoryLimits[category] = value;
+    localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
+    renderCopilotCategoryMetrics();
+    renderBudgetLimitWidget();
+    document.getElementById('budget-limit-info').innerText = `${category} limit saved as ${formatCurrency(value)}.`;
+}
+
+function renderBudgetLimitWidget() {
+    const category = document.getElementById('budget-cat-select').value;
+    const limitInput = document.getElementById('budget-limit-input');
+    const info = document.getElementById('budget-limit-info');
+    if (!category || !limitInput || !info) return;
+
+    const currentLimit = getCategoryLimit(category);
+    limitInput.value = currentLimit;
+    info.innerText = `Current ${category} budget limit is ${formatCurrency(currentLimit)}.`;
+}
+
+function formatCurrency(val) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+}
+
+// ==========================================================================
+// CORE CONTROLLERS & RENDER PROCESSORS
+// ==========================================================================
+function addCustomExpense() {
+    const desc = document.getElementById('exp-name').value;
+    const amount = parseFloat(document.getElementById('exp-amount').value);
+    const category = document.getElementById('exp-category').value;
+    const date = document.getElementById('exp-date').value;
+    const time = document.getElementById('exp-time').value;
+
+    if (desc && amount) {
+        coreLedger.variableOutflows.push({ 
+            id: generateUUID(), desc, amount, category, date, time, reviewed: false 
+        });
+        clearFields(['exp-name', 'exp-amount']);
+        setDefaultTimeInputs();
+        renderVariableExpenseList();
+        renderSpendingBreakdown();
+        runCalculations();
+    }
+}
+
+function toggleTransactionReview(id) {
+    const index = coreLedger.variableOutflows.findIndex(item => item.id === id);
+    if (index !== -1) {
+        coreLedger.variableOutflows[index].reviewed = !coreLedger.variableOutflows[index].reviewed;
+        renderVariableExpenseList();
+        runCalculations();
+    }
+}
+
+function setVerificationFilter(filterType) {
+    coreLedger.currentVerificationFilter = filterType;
+    document.querySelectorAll('[id^="filter-sw-"]').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`filter-sw-${filterType.toLowerCase()}`).classList.add('active');
+    renderVariableExpenseList();
+}
+
+function renderVariableExpenseList() {
+    const matrix = document.getElementById('expense-day-matrix');
+    if (!matrix) return;
+    matrix.innerHTML = '';
+    
+    const searchVal = document.getElementById('search-box').value.toLowerCase();
+    const catFilter = document.getElementById('filter-category').value;
+    const vFilter = coreLedger.currentVerificationFilter || 'ALL';
+
+    let filteredItems = coreLedger.variableOutflows.filter(item => {
+        const matchesSearch = item.desc.toLowerCase().includes(searchVal);
+        const matchesCat = catFilter === 'ALL' || item.category === catFilter;
+        let matchesVerification = true;
+        if (vFilter === 'NEW') matchesVerification = !item.reviewed;
+        if (vFilter === 'REVIEWED') matchesVerification = item.reviewed;
+        return matchesSearch && matchesCat && matchesVerification;
+    });
+
+    if (filteredItems.length === 0) {
+        matrix.innerHTML = '<div style="font-size:0.8rem;text-align:center;color:var(--text-muted);padding:10px;">No transaction entries matches filters.</div>';
+        return;
+    }
+
+    filteredItems.sort((a,b) => b.date.localeCompare(a.date));
+    
+    filteredItems.forEach(item => {
+        const isRev = !!item.reviewed;
+        const itemIcon = categoryMetadata[item.category] ? categoryMetadata[item.category].icon : '💸';
+        matrix.innerHTML += `
+            <div class="row-item" style="border-left: 3px solid ${isRev ? 'transparent' : 'var(--accent)'}; padding-left: 8px; margin-bottom:6px;">
+                <span>
+                    <b>${itemIcon} ${item.desc}</b> <small style="color:var(--text-muted);">${item.date} ${item.time}</small>
+                </span>
+                <span style="display:flex; align-items:center; gap:8px;">
+                    <button onclick="toggleTransactionReview('${item.id}')" style="background:none; border:none; cursor:pointer;">
+                        ${isRev ? '✅' : '🟡'}
+                    </button>
+                    <b>${formatCurrency(item.amount)}</b>
+                    <button class="delete-btn" onclick="deleteItem('variableOutflows','${item.id}')">✕</button>
+                </span>
+            </div>`;
+    });
+}
+
+// ==========================================================================
+// UTILITY SUBSYSTEM RE-RENDERING PIPELINES
+// ==========================================================================
+function renderQuickChips() {
+    const container = document.getElementById('quick-chips-wrapper');
+    if (!container) return;
+    container.innerHTML = '';
+    coreLedger.quickTemplates.forEach(t => {
+        container.innerHTML += `
+            <div class="quick-chip-wrapper">
+                <span class="quick-chip-text" onclick="applyTemplate('${t.label}', ${t.amount})">${t.label} ($${t.amount})</span>
+                <button class="quick-chip-del" onclick="deleteTemplate('${t.id}')">✕</button>
+            </div>`;
+    });
+}
+
+function applyTemplate(label, val) {
+    let pureLabel = label.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, "").trim();
+    document.getElementById('exp-name').value = pureLabel;
+    document.getElementById('exp-amount').value = val;
+}
+
+function saveAsNewTemplate() {
+    const label = document.getElementById('exp-name').value;
+    const amount = parseFloat(document.getElementById('exp-amount').value);
+    const category = document.getElementById('exp-category').value;
+    const icon = categoryMetadata[category] ? categoryMetadata[category].icon : '💸';
+    
+    if (label && amount) {
+        coreLedger.quickTemplates.push({ id: generateUUID(), label: `${icon} ${label}`, amount });
+        renderQuickChips();
+        runCalculations();
+    }
+}
+
+function deleteTemplate(id) {
+    coreLedger.quickTemplates = coreLedger.quickTemplates.filter(t => t.id !== id);
+    renderQuickChips();
+    runCalculations();
+}
+
+function addIncome() {
+    const desc = document.getElementById('inc-name').value;
+    const amount = parseFloat(document.getElementById('inc-amount').value);
+    const frequency = document.getElementById('inc-freq').value;
+    if (desc && amount) {
+        coreLedger.inflows.push({ id: generateUUID(), desc, amount, frequency });
+        clearFields(['inc-name', 'inc-amount']);
+        renderInflows();
+        renderIncomeSourcesList();
+        runCalculations();
+    }
+}
+
+function addOneTimeMoney() {
+    const source = document.getElementById('onetime-source').value;
+    const amount = parseFloat(document.getElementById('onetime-amount').value);
+    const date = new Date().toISOString().slice(0, 10);
+    
+    if(source && amount && amount > 0) {
+        coreLedger.oneTimeTransactions.push({ 
+            id: generateUUID(), 
+            source, 
+            amount, 
+            date
+        });
+        document.getElementById('onetime-amount').value = '';
+        renderOneTimeList();
+        runCalculations();
+    }
+}
+
+function renderOneTimeList() {
+    const list = document.getElementById('onetime-list');
+    if(!list) return;
+    list.innerHTML = '';
+    
+    if(coreLedger.oneTimeTransactions.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:12px; font-size:0.9rem;">No one-time money added yet.</div>';
+        return;
+    }
+    
+    const sourceEmoji = {
+        'Gift': '💝',
+        'Bonus': '🎉',
+        'Refund': '💵',
+        'Found': '🔍',
+        'Other': '📌'
+    };
+    
+    coreLedger.oneTimeTransactions.forEach(item => {
+        const emoji = sourceEmoji[item.source] || '💰';
+        list.innerHTML += `
+            <div style="margin-bottom:8px; padding:10px; background:rgba(34, 197, 94, 0.08); border-radius:10px; border:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-weight:700; font-size:0.95rem;">${emoji} ${item.source}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">${item.date}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:700; color:var(--success); font-size:1rem;">+${formatCurrency(item.amount)}</div>
+                    <button class="delete-btn" style="margin:0; margin-top:4px;" onclick="deleteItem('oneTimeTransactions','${item.id}')">✕</button>
+                </div>
+            </div>`;
+    });
+}
+
+function addRecurring() {
+    const desc = document.getElementById('rec-name').value;
+    const amount = parseFloat(document.getElementById('rec-amount').value);
+    const frequency = document.getElementById('rec-freq').value;
+    if (desc && amount) {
+        coreLedger.fixedOutflows.push({ id: generateUUID(), desc, amount, frequency });
+        clearFields(['rec-name', 'rec-amount']);
+        renderFixedOutflows(); runCalculations();
+    }
+}
+
+function addStock() {
+    const ticker = document.getElementById('stock-ticker').value.toUpperCase();
+    const shares = parseFloat(document.getElementById('stock-shares').value);
+    const purchasePrice = parseFloat(document.getElementById('stock-price').value);
+    if(ticker && shares && purchasePrice) {
+        coreLedger.assetPositions.push({ 
+            id: generateUUID(), 
+            ticker, 
+            shares, 
+            purchasePrice, 
+            currentPrice: purchasePrice
+        });
+        clearFields(['stock-ticker','stock-shares','stock-price']);
+        renderStockList(); 
+        renderPortfolioSummary();
+        runCalculations();
+    }
+}
+
+function deleteItem(key, id) {
+    coreLedger[key] = coreLedger[key].filter(i => i.id !== id);
+    renderAllInterfaceLists();
+    runCalculations();
+}
+
+function renderInflows() {
+    const list = document.getElementById('income-list'); if(!list) return; list.innerHTML = '';
+    coreLedger.inflows.forEach(i => {
+        list.innerHTML += `<div class="row-item"><span><b>💰 ${i.desc}</b> (${i.frequency})</span><span>${formatCurrency(i.amount)} <button class="delete-btn" onclick="deleteItem('inflows','${i.id}')">✕</button></span></div>`;
+    });
+}
+
+function renderFixedOutflows() {
+    const list = document.getElementById('recurring-list'); if(!list) return; list.innerHTML = '';
+    coreLedger.fixedOutflows.forEach(r => {
+        list.innerHTML += `<div class="row-item"><span><b>🔄 ${r.desc}</b> (${r.frequency})</span><span>${formatCurrency(r.amount)} <button class="delete-btn" onclick="deleteItem('fixedOutflows','${r.id}')">✕</button></span></div>`;
+    });
+}
+
+function renderStockList() {
+    const list = document.getElementById('stock-list'); 
+    if(!list) return; 
+    list.innerHTML = '';
+    
+    if(coreLedger.assetPositions.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">No stocks tracked yet. Add one to get started.</div>';
+        return;
+    }
+    
+    coreLedger.assetPositions.forEach(s => {
+        const investmentValue = s.shares * s.purchasePrice;
+        const currentValue = s.shares * s.currentPrice;
+        const gainLoss = currentValue - investmentValue;
+        const gainLossPercent = (gainLoss / investmentValue * 100).toFixed(2);
+        const gainLossColor = gainLoss >= 0 ? 'var(--success)' : 'var(--danger)';
+        const gainLossSign = gainLoss >= 0 ? '+' : '';
+        
+        list.innerHTML += `
+            <div style="margin-bottom:14px; background:rgba(255,255,255,0.02); padding:16px; border-radius:14px; border:1px solid var(--card-border);">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
+                    <div>
+                        <div style="font-weight:700; font-size:1.1rem; margin-bottom:4px;">📈 ${s.ticker}</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">${s.shares} shares</div>
+                    </div>
+                    <button class="delete-btn" style="margin:0;" onclick="deleteItem('assetPositions','${s.id}')">✕</button>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:10px;">
+                    <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Buy Price</div>
+                        <div style="font-size:0.95rem; font-weight:600;">${formatCurrency(s.purchasePrice)}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Current Price</div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input type="number" value="${s.currentPrice}" step="0.01" min="0" style="width:80px; padding:4px 8px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.05);" onchange="updateStockPrice('${s.id}', this.value)" />
+                        </div>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding:10px; background:rgba(255,255,255,0.05); border-radius:10px; border:1px solid var(--card-border);">
+                    <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Total Value</div>
+                        <div style="font-size:1rem; font-weight:700; color:var(--primary);">${formatCurrency(currentValue)}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Gain / Loss</div>
+                        <div style="font-size:1rem; font-weight:700; color:${gainLossColor};">${gainLossSign}${formatCurrency(gainLoss)} (${gainLossSign}${gainLossPercent}%)</div>
+                    </div>
+                </div>
+            </div>`;
+    });
+}
+
+function updateStockPrice(stockId, newPrice) {
+    const stock = coreLedger.assetPositions.find(s => s.id === stockId);
+    if(stock) {
+        stock.currentPrice = parseFloat(newPrice);
+        localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
+        renderStockList();
+        renderPortfolioSummary();
+        runCalculations();
+    }
+}
+
+function renderPortfolioSummary() {
+    let totalValue = 0;
+    let totalInvested = 0;
+    
+    coreLedger.assetPositions.forEach(s => {
+        totalInvested += s.shares * s.purchasePrice;
+        totalValue += s.shares * s.currentPrice;
+    });
+    
+    const totalGainLoss = totalValue - totalInvested;
+    const totalGainLossPercent = totalInvested > 0 ? (totalGainLoss / totalInvested * 100).toFixed(2) : 0;
+    const gainLossColor = totalGainLoss >= 0 ? 'var(--success)' : 'var(--danger)';
+    const gainLossSign = totalGainLoss >= 0 ? '+' : '';
+    
+    const totalValueEl = document.getElementById('portfolio-total-value');
+    const totalInvestedEl = document.getElementById('portfolio-total-invested');
+    const totalGainEl = document.getElementById('portfolio-total-gain');
+    
+    if(totalValueEl) totalValueEl.innerText = formatCurrency(totalValue);
+    if(totalInvestedEl) totalInvestedEl.innerText = formatCurrency(totalInvested);
+    if(totalGainEl) {
+        totalGainEl.innerText = `${gainLossSign}${formatCurrency(totalGainLoss)} (${gainLossSign}${totalGainLossPercent}%)`;
+        totalGainEl.style.color = gainLossColor;
+    }
+}
+
+function renderAllInterfaceLists() {
+    renderQuickChips();
+    renderInflows();
+    renderFixedOutflows();
+    renderVariableExpenseList();
+    renderStockList();
+    renderPortfolioSummary();
+    renderBudgetLimitWidget();
+    renderOneTimeList();
+}
+
+function clearFields(arr) { arr.forEach(f => { const el = document.getElementById(f); if(el) el.value = ''; }); }
+function generateUUID() { return Math.random().toString(36).substring(2, 9); }
+function resetSystemData() { if(confirm("Confirm reset?")) { localStorage.clear(); location.reload(); } }
+
+function downloadStructuredCSV() {
+    let csvLines = ["Data Type,Label,Value,Frequency,Group Category"];
+    coreLedger.inflows.forEach(i => csvLines.push(`Inflow,${i.desc},${i.amount},${i.frequency},Revenue`));
+    coreLedger.fixedOutflows.forEach(f => csvLines.push(`Fixed,${f.desc},${f.amount},${f.frequency},Overhead`));
+    coreLedger.variableOutflows.forEach(v => csvLines.push(`Variable,${v.desc},${v.amount},Once,${v.category}`));
+    const blob = new Blob([csvLines.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "Ledger.csv"); link.click();
+}
+
+// ==========================================================================
+// SYSTEM LIGHT/DARK MULTI-MODE ENGINE CONTROLLER
+// ==========================================================================
+function applyTheme(themeName) {
+    document.documentElement.setAttribute('data-theme', themeName);
+    coreLedger.activeThemePreference = themeName;
+    localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
+}

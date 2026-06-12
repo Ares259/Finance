@@ -65,6 +65,55 @@
         </div>
 
         <div class="card">
+            <h2>Add One-Time Money 🎁</h2>
+            <p class="budget-note">Add gift money, bonuses, refunds, or any one-time income to your balance.</p>
+            <div class="form-row">
+                <select id="onetime-source" style="flex:1;">
+                    <option value="Gift">💝 Gift Money</option>
+                    <option value="Bonus">🎉 Bonus</option>
+                    <option value="Refund">💵 Refund</option>
+                    <option value="Found">🔍 Found Money</option>
+                    <option value="Other">📌 Other</option>
+                </select>
+                <input type="number" id="onetime-amount" placeholder="Amount ($)" min="0" step="0.01" style="flex:1;" />
+                <button class="action-btn" onclick="addOneTimeMoney()">Add Money</button>
+            </div>
+            <div id="onetime-list" class="list-container"></div>
+        </div>
+
+        <div class="card">
+            <h2>Where Your Money Comes From</h2>
+            <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <button class="interval-btn active view-toggle-btn" onclick="toggleIncomeView('list')" data-view="income-list">📊 List</button>
+                <button class="interval-btn view-toggle-btn" onclick="toggleIncomeView('chart')" data-view="income-chart">📈 Chart</button>
+            </div>
+            <div id="income-view-list">
+                <div id="income-sources-list" class="list-container"></div>
+            </div>
+            <div id="income-view-chart" style="display:none;">
+                <div style="max-width: 400px; margin: 0 auto;">
+                    <canvas id="incomeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Where Your Money Goes</h2>
+            <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <button class="interval-btn active view-toggle-btn" onclick="toggleSpendingView('list')" data-view="spending-list">📊 List</button>
+                <button class="interval-btn view-toggle-btn" onclick="toggleSpendingView('chart')" data-view="spending-chart">📈 Chart</button>
+            </div>
+            <div id="spending-view-list">
+                <div id="spending-breakdown-list" class="list-container"></div>
+            </div>
+            <div id="spending-view-chart" style="display:none;">
+                <div style="max-width: 400px; margin: 0 auto;">
+                    <canvas id="spendingChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
             <h2>Budget Overview</h2>
             <p class="budget-note">See how much you spent in each category compared to its budget limit.</p>
             <div id="copilot-budget-matrix" class="list-container"></div>
@@ -176,20 +225,45 @@
 
     <section id="analytics-page" class="view-page" style="display:none;">
         <div class="card">
-            <h2>Category Allocation Breakdown</h2>
+            <h2>Your Stock Portfolio</h2>
+            <div id="portfolio-summary" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:20px;">
+                <div style="background:rgba(255,255,255,0.04); padding:14px; border-radius:12px; border:1px solid var(--card-border);">
+                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;">Total Value</div>
+                    <div id="portfolio-total-value" style="font-size:1.4rem; font-weight:700; color:var(--primary);">$0.00</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.04); padding:14px; border-radius:12px; border:1px solid var(--card-border);">
+                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;">Total Invested</div>
+                    <div id="portfolio-total-invested" style="font-size:1.4rem; font-weight:700; color:var(--primary);">$0.00</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.04); padding:14px; border-radius:12px; border:1px solid var(--card-border);">
+                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;">Total Gain/Loss</div>
+                    <div id="portfolio-total-gain" style="font-size:1.4rem; font-weight:700; color:var(--success);">$0.00</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Add Investment</h2>
+            <div class="form-row">
+                <input type="text" id="stock-ticker" placeholder="Stock Ticker (e.g. AAPL)">
+                <input type="number" id="stock-shares" placeholder="Shares Count" min="0.01" step="0.01">
+                <input type="number" id="stock-price" placeholder="Buy Price ($)" min="0.01" step="0.01">
+            </div>
+            <div class="form-row">
+                <button class="action-btn" onclick="addStock()">Add Stock</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Your Holdings</h2>
+            <div id="stock-list" class="list-container"></div>
+        </div>
+
+        <div class="card">
+            <h2>Category Breakdown</h2>
             <div style="max-width: 320px; margin: 0 auto 20px auto;">
                 <canvas id="analyticsChart"></canvas>
             </div>
-        </div>
-        <div class="card">
-            <h2>Investment Portfolio <span>Track assets and positions</span></h2>
-            <div class="form-row">
-                <input type="text" id="stock-ticker" placeholder="Ticker Symbol">
-                <input type="number" id="stock-shares" placeholder="Shares Count">
-                <input type="number" id="stock-price" placeholder="Price ($)">
-                <button class="action-btn" onclick="addStock()">Track</button>
-            </div>
-            <div id="stock-list" class="list-container"></div>
         </div>
     </section>
 

@@ -118,6 +118,12 @@ header {
     font-size: 0.95rem;
 }
 
+.view-toggle-btn {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    min-width: auto;
+}
+
 h1 {
     font-size: clamp(1.7rem, 2.5vw, 2.8rem);
     letter-spacing: -0.03em;
@@ -251,6 +257,29 @@ select {
     width: 100%;
 }
 
+/* Ensure dropdowns and their options are readable in dark and light themes */
+select, select * {
+    background: var(--surface-strong) !important;
+    color: var(--text-normal) !important;
+}
+
+/* Options in native dropdowns */
+select option {
+    background: var(--surface-strong);
+    color: var(--text-normal);
+}
+
+/* Improve select chevron visibility */
+select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, rgba(248,250,252,0.85) 50%), linear-gradient(135deg, rgba(248,250,252,0.85) 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 13px) calc(1em + 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 36px;
+}
+
 #budget-cat-select,
 #budget-limit-input {
     background: rgba(15, 23, 42, 0.88);
@@ -330,6 +359,13 @@ button.action-btn:hover,
 .list-container {
     display: grid;
     gap: 12px;
+}
+
+.budget-note {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0 0 16px 0;
+    line-height: 1.4;
 }
 
 .quick-chips-container {
