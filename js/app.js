@@ -1,6 +1,9 @@
-// DATA ENGINE BASE MANAGEMENT
+// ==========================================================================
+// PHASE 1: DATA ENGINE BASE MANAGEMENT
+// ==========================================================================
 let coreLedger = {
     currentViewInterval: 'month',
+    savingsPercent: 20, // Dynamic user allocation threshold
     inflows: [],
     fixedOutflows: [],
     variableOutflows: [],
@@ -20,6 +23,14 @@ window.addEventListener('DOMContentLoaded', () => {
     if (stored) {
         coreLedger = JSON.parse(stored);
     }
+    
+    // Synchronize UI strategy config input state with engine database
+    if (coreLedger.savingsPercent === undefined) coreLedger.savingsPercent = 20;
+    const strategyInput = document.getElementById('strategy-savings-pct');
+    if (strategyInput) {
+        strategyInput.value = coreLedger.savingsPercent;
+    }
+
     const savedTheme = localStorage.getItem('theme') || 'dark';
     applyTheme(savedTheme);
     document.getElementById('theme-select').value = savedTheme;
@@ -34,7 +45,9 @@ function setDefaultTimeInputs() {
     document.getElementById('exp-time').value = today.toTimeString().slice(0, 5);
 }
 
+// ==========================================================================
 // PHASE 2: ROUTING LAYER ENGINE
+// ==========================================================================
 function showPage(pageId) {
     document.querySelectorAll('.view-page').forEach(page => page.style.display = 'none');
     document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
@@ -47,7 +60,9 @@ function showPage(pageId) {
     }
 }
 
-// PHASE 3: METRIC VISUALIZATION INTERFACE
+// ==========================================================================
+// PHASE 3: METRIC VISUALIZATION & CALCULATION ENGINE
+// ==========================================================================
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -61,6 +76,15 @@ function changeInterval(targetFrame) {
     runCalculations();
 }
 
+function updateSavingsRule(val) {
+    let numericVal = parseInt(val);
+    if (isNaN(numericVal) || numericVal < 0) numericVal = 0;
+    if (numericVal > 100) numericVal = 100;
+    
+    coreLedger.savingsPercent = numericVal;
+    runCalculations();
+}
+
 function runCalculations() {
     localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
 
@@ -71,7 +95,17 @@ function runCalculations() {
 
     const viewIncome = totalAnnualIncome / annualConversionMap[coreLedger.currentViewInterval];
     const viewFixed = totalAnnualFixed / annualConversionMap[coreLedger.currentViewInterval];
-    const targetSavings = viewIncome * 0.20;
+    
+    // Dynamic percentage engine calculations
+    const activePct = coreLedger.savingsPercent !== undefined ? coreLedger.savingsPercent : 20;
+    const currentHorizonLabel = coreLedger.currentViewInterval.charAt(0).toUpperCase() + coreLedger.currentViewInterval.slice(1);
+    
+    const savingsLabelElement = document.getElementById('dash-savings-label');
+    if (savingsLabelElement) {
+        savingsLabelElement.innerText = `Saved This ${currentHorizonLabel} (${activePct}%)`;
+    }
+
+    const targetSavings = viewIncome * (activePct / 100);
     const netLiquidCapital = viewIncome - targetSavings - (viewFixed + currentIntervalVariable);
 
     document.getElementById('dash-income').innerText = formatCurrency(viewIncome);
@@ -88,7 +122,9 @@ function formatCurrency(val) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 }
 
-// CRUDS TRANSACTION CONTROLLERS
+// ==========================================================================
+// PHASE 4: CRUDS TRANSACTION CONTROLLERS
+// ==========================================================================
 function addIncome() {
     const desc = document.getElementById('inc-name').value;
     const amount = parseFloat(document.getElementById('inc-amount').value);
@@ -130,7 +166,9 @@ function addCustomExpense() {
     }
 }
 
-// QUICK SHORTCUT CONTROLLERS
+// ==========================================================================
+// PHASE 5: QUICK SHORTCUT CONTROLLERS
+// ==========================================================================
 function renderQuickChips() {
     const container = document.getElementById('quick-chips-wrapper');
     container.innerHTML = '';
@@ -164,7 +202,9 @@ function deleteTemplate(id) {
     localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
 }
 
-// CHRONOLOGICAL LEDGER VIEW MANAGEMENT WITH FILTERING
+// ==========================================================================
+// PHASE 6: CHRONOLOGICAL LEDGER MANAGEMENT WITH FILTERING
+// ==========================================================================
 function renderVariableExpenseList() {
     const matrix = document.getElementById('expense-day-matrix');
     matrix.innerHTML = '';
@@ -223,7 +263,9 @@ function renderDashboardRecentList() {
     });
 }
 
-// SAVINGS GOALS MODULE MANAGEMENT
+// ==========================================================================
+// PHASE 7: SAVINGS GOALS MODULE MANAGEMENT
+// ==========================================================================
 function addNewGoal() {
     const name = document.getElementById('goal-name').value;
     const target = parseFloat(document.getElementById('goal-target').value);
@@ -263,7 +305,9 @@ function deleteGoal(id) {
     localStorage.setItem('apex_ledger_v4', JSON.stringify(coreLedger));
 }
 
-// COMPONENT ARRAYS CLEANUP UTILS
+// ==========================================================================
+// PHASE 8: COMPONENT ARRAYS CLEANUP UTILS
+// ==========================================================================
 function deleteItem(key, id) {
     coreLedger[key] = coreLedger[key].filter(i => i.id !== id);
     renderAllInterfaceLists();

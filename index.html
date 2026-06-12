@@ -30,7 +30,7 @@
                     <div id="dash-income" class="dash-val" style="color: var(--success);">$0.00</div>
                 </div>
                 <div class="dash-box">
-                    <div class="dash-label">Saved This Month (20%)</div>
+                    <div class="dash-label" id="dash-savings-label">Saved This Month (20%)</div>
                     <div id="dash-savings" class="dash-val" style="color: var(--primary);">$0.00</div>
                 </div>
                 <div class="dash-box">
@@ -163,6 +163,20 @@
 
     <section id="settings-page" class="view-page" style="display:none;">
         <div class="card">
+            <h2>Financial Strategy Configuration</h2>
+            <div class="form-row" style="justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <label class="dash-label">Target Savings Allocation Rate</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="number" id="strategy-savings-pct" min="0" max="100" style="max-width: 80px; text-align: center;" oninput="updateSavingsRule(this.value)">
+                    <span style="font-weight: bold; color: var(--primary);">%</span>
+                </div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
+                Adjusting this updates your required safety reserves instantly, scaling your remaining disposable runway limits.
+            </p>
+        </div>
+
+        <div class="card">
             <h2>Ecosystem Preferences</h2>
             <div class="form-row" style="justify-content: space-between; align-items: center;">
                 <label class="dash-label">Application UI Theme Color Framework</label>
@@ -172,6 +186,7 @@
                 </select>
             </div>
         </div>
+        
         <div class="card">
             <h2>System Data Operations</h2>
             <div class="form-row">
