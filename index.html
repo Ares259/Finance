@@ -3,9 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Budget</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Finance Budget Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* === FULL APP THEME FRAMEWORK === */
+        :root {
+            --background: #121214;
+            --card-bg: #1a1a1e;
+            --primary: #4ade80;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --accent: #3b82f6;
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+            --card-border: #2d2d34;
+        }
+
+        .light-theme {
+            --background: #f4f4f7;
+            --card-bg: #ffffff;
+            --primary: #16a34a;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --accent: #2563eb;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --card-border: #e5e7eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .top-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .nav-item {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .nav-item.active {
+            color: var(--text);
+            border-color: var(--primary);
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h2 span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        .filter-control-panel {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        .interval-selector {
+            display: flex;
+            gap: 6px;
+        }
+
+        .interval-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .interval-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .calendar-dropdown {
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+            border: 1px solid var(--card-border);
+            font-family: inherit;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .dash-box {
+            background: rgba(255,255,255,0.01);
+            border: 1px solid var(--card-border);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+            background: rgba(74, 222, 128, 0.03);
+        }
+
+        .dash-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dash-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .dash-val {
+            font-size: 1.6rem;
+            font-weight: bold;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        input, select, button.action-btn {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text);
+            font-family: inherit;
+        }
+
+        /* FIX: Prevents unreadable white-on-white text inside dropdown menus */
+        select option {
+            background-color: var(--card-bg);
+            color: var(--text);
+        }
+
+        input { flex: 1; min-width: 120px; }
+
+        button.action-btn {
+            background: var(--primary);
+            color: #121214;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+
+        button.action-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+            border: 1px solid var(--card-border);
+        }
+
+        .list-container {
+            margin-top: 10px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 12px;
+            border: 1px dashed var(--card-border);
+            border-radius: 6px;
+            min-height: 40px;
+        }
+
+        .ledger-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 4px;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text);
+        }
+
+        .ledger-item:last-child { border-bottom: none; }
+
+        .budget-note {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            margin-top: -5px;
+        }
+
+        .quick-chips-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .chip:hover { border-color: var(--accent); }
+
+        .footer-btn {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .reset-btn { background: var(--danger); color: white; }
+        .download-btn { background: var(--accent); color: white; }
+    </style>
 </head>
 <body>
 
@@ -17,78 +292,113 @@
 
     <nav class="top-nav">
         <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">🏠<span>Main Hub</span></button>
-        <button class="nav-item" id="nav-recurring" onclick="showPage('recurring')">💰<span>Income</span></button>
+        <button class="nav-item" id="nav-recurring" onclick="showPage('recurring')">💰<span>Income Streams</span></button>
         <button class="nav-item" id="nav-analytics" onclick="showPage('analytics')">📊<span>Portfolio</span></button>
         <button class="nav-item" id="nav-settings" onclick="showPage('settings')">⚙️<span>Settings</span></button>
     </nav>
 
     <section id="dashboard-page" class="view-page">
-        <div class="interval-selector">
-            <button class="interval-btn" id="btn-day" onclick="changeInterval('day')">Daily</button>
-            <button class="interval-btn active" id="btn-month" onclick="changeInterval('month')">Monthly</button>
-            <button class="interval-btn" id="btn-year" onclick="changeInterval('year')">Yearly</button>
+        
+        <div class="filter-control-panel">
+            <div class="interval-selector">
+                <button class="interval-btn" id="btn-day" onclick="changeInterval('day')">Daily View</button>
+                <button class="interval-btn active" id="btn-month" onclick="changeInterval('month')">Monthly View</button>
+                <button class="interval-btn" id="btn-year" onclick="changeInterval('year')">Yearly View</button>
+            </div>
+            
+            <div id="filter-box-day" style="display:none;">
+                <label for="date-filter" style="font-size:0.85rem; color:var(--text-muted); margin-right:5px;">Select Day:</label>
+                <input type="date" id="date-filter" class="calendar-dropdown" onchange="renderMasterLists()">
+            </div>
+
+            <div id="filter-box-month">
+                <label for="month-filter" style="font-size:0.85rem; color:var(--text-muted); margin-right:5px;">Select Month:</label>
+                <select id="month-filter" class="calendar-dropdown" onchange="renderMasterLists()">
+                    <option value="ALL">All Months</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+
+            <div id="filter-box-year">
+                <label for="year-filter" style="font-size:0.85rem; color:var(--text-muted); margin-right:5px;">Select Year:</label>
+                <select id="year-filter" class="calendar-dropdown" onchange="renderMasterLists()">
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                    <option value="2029">2029</option>
+                </select>
+            </div>
         </div>
 
         <div class="card">
-            <h2>Live Metric Console (<span id="view-title">Month</span>)</h2>
+            <h2>Live Metric Console (<span id="view-title">Month</span> View)</h2>
             <div class="dashboard-grid">
                 <div class="dash-box">
-                    <div class="dash-label">Net Balance</div>
+                    <div class="dash-label">Total Income Channels</div>
                     <div id="dash-income" class="dash-val" style="color: var(--success);">$0.00</div>
                 </div>
                 <div class="dash-box">
                     <div class="dash-label-row">
-                        <div class="dash-label" id="dash-savings-label">Savings Rate</div>
-                        <select id="savings-select" onchange="updateSavingsRule(this.value)">
-                            <option value="10">10%</option>
-                            <option value="15">15%</option>
-                            <option value="20" selected>20%</option>
-                            <option value="25">25%</option>
-                            <option value="30">30%</option>
-                        </select>
+                        <div class="dash-label">Savings Target Allocation</div>
                     </div>
-                    <div id="dash-savings" class="dash-val" style="color: var(--primary);">$0.00</div>
+                    <div id="dash-savings" class="dash-val" style="color: var(--accent);">$0.00</div>
                 </div>
                 <div class="dash-box">
-                    <div class="dash-label">Spent This Month</div>
+                    <div class="dash-label">Total Outflows/Spent</div>
                     <div id="dash-burn" class="dash-val" style="color: var(--danger);">$0.00</div>
                 </div>
                 <div class="dash-box">
-                    <div class="dash-label">Asset Allocation</div>
+                    <div class="dash-label">Asset Portfolio Value</div>
                     <div id="dash-stocks" class="dash-val" style="color: var(--accent);">$0.00</div>
                 </div>
-                <div class="dash-box full-width">
-                    <div class="dash-label" id="dash-budget-label">Money Balance</div>
-                    <div id="dash-budget" class="dash-val">$0.00</div>
+                <div class="dash-box full-width" style="text-align: center;">
+                    <div class="dash-label" style="font-size:1rem;">Net Remaining Balance</div>
+                    <div id="dash-budget" class="dash-val" style="font-size:2.2rem; color: var(--text);">$0.00</div>
                 </div>
             </div>
         </div>
 
         <div class="card">
             <h2>Add One-Time Money 🎁</h2>
-            <p class="budget-note">Add gift money, bonuses, refunds, or any one-time income to your balance.</p>
+            <p class="budget-note">Log gift money, bonuses, refunds, or job income.</p>
             <div class="form-row">
                 <select id="onetime-source" style="flex:1;">
                     <option value="Gift">💝 Gift Money</option>
                     <option value="Bonus">🎉 Bonus</option>
                     <option value="Refund">💵 Refund</option>
-                    <option value="Found">🔍 Found Money</option>
+                    <option value="Paycheck">💼 Job Paycheck</option>
                     <option value="Other">📌 Other</option>
                 </select>
-                <input type="number" id="onetime-amount" placeholder="Amount ($)" min="0" step="0.01" style="flex:1;" />
-                <button class="action-btn" onclick="addOneTimeMoney()">Add Money</button>
+                <input type="number" id="onetime-amount" placeholder="Amount ($)" min="0.01" step="0.01" style="flex:1;" />
+                <input type="date" id="onetime-date" style="flex:1;" />
             </div>
-            <div id="onetime-list" class="list-container"></div>
+            <div class="form-row">
+                <button class="action-btn" style="width: 100%;" onclick="addOneTimeMoney()">Secure Income Entry</button>
+            </div>
+            <div id="onetime-list" class="list-container">No income records in current filter window.</div>
         </div>
 
         <div class="card">
             <h2>Where Your Money Comes From</h2>
             <div style="display:flex; gap:8px; margin-bottom:16px;">
-                <button class="interval-btn active view-toggle-btn" onclick="toggleIncomeView('list')" data-view="income-list">📊 List</button>
-                <button class="interval-btn view-toggle-btn" onclick="toggleIncomeView('chart')" data-view="income-chart">📈 Chart</button>
+                <button class="interval-btn active view-toggle-btn" id="inc-toggle-list" onclick="toggleIncomeView('list')">📊 List View</button>
+                <button class="interval-btn view-toggle-btn" id="inc-toggle-chart" onclick="toggleIncomeView('chart')">📈 Chart View</button>
             </div>
             <div id="income-view-list">
-                <div id="income-sources-list" class="list-container"></div>
+                <div id="income-sources-list" class="list-container">No income channels found.</div>
             </div>
             <div id="income-view-chart" style="display:none;">
                 <div style="max-width: 400px; margin: 0 auto;">
@@ -100,11 +410,11 @@
         <div class="card">
             <h2>Where Your Money Goes</h2>
             <div style="display:flex; gap:8px; margin-bottom:16px;">
-                <button class="interval-btn active view-toggle-btn" onclick="toggleSpendingView('list')" data-view="spending-list">📊 List</button>
-                <button class="interval-btn view-toggle-btn" onclick="toggleSpendingView('chart')" data-view="spending-chart">📈 Chart</button>
+                <button class="interval-btn active view-toggle-btn" id="exp-toggle-list" onclick="toggleSpendingView('list')">📊 List View</button>
+                <button class="interval-btn view-toggle-btn" id="exp-toggle-chart" onclick="toggleSpendingView('chart')">📈 Chart View</button>
             </div>
             <div id="spending-view-list">
-                <div id="spending-breakdown-list" class="list-container"></div>
+                <div id="spending-breakdown-list" class="list-container">No spending parsed.</div>
             </div>
             <div id="spending-view-chart" style="display:none;">
                 <div style="max-width: 400px; margin: 0 auto;">
@@ -114,14 +424,13 @@
         </div>
 
         <div class="card">
-            <h2>Budget Overview</h2>
-            <p class="budget-note">See how much you spent in each category compared to its budget limit.</p>
-            <div id="copilot-budget-matrix" class="list-container"></div>
+            <h2>Budget Cap Status Overview</h2>
+            <p class="budget-note">Compare actual expenditures versus customized category allowances.</p>
+            <div id="copilot-budget-matrix" class="list-container">All systems operating within safe parameters.</div>
         </div>
 
         <div class="card">
             <h2>Customize Budget Limits</h2>
-            <p class="budget-note">A budget limit is the maximum amount you want to spend in a category. Set your own limits so the app can warn you when spending gets close.</p>
             <div class="form-row" style="align-items:center;">
                 <select id="budget-cat-select" onchange="renderBudgetLimitWidget()">
                     <option value="Food">🍔 Food</option>
@@ -133,19 +442,23 @@
                     <option value="Education">📚 Education</option>
                 </select>
                 <input type="number" id="budget-limit-input" placeholder="New limit ($)" min="0" />
-                <button class="action-btn" onclick="saveBudgetLimit()">Save</button>
+                <button class="action-btn" onclick="saveBudgetLimit()">Update Limit</button>
             </div>
-            <div class="budget-limit-info" id="budget-limit-info"></div>
+            <div class="budget-limit-info" id="budget-limit-info" style="font-size:0.85rem; color:var(--accent); margin-top:5px;">Loading...</div>
         </div>
 
         <div class="card">
             <h2>Log New Outflow <span>Instant Ledger Entry</span></h2>
             <div class="dash-label" style="margin-bottom: 6px;">Quick Templates:</div>
-            <div id="quick-chips-wrapper" class="quick-chips-container"></div>
+            <div id="quick-chips-wrapper" class="quick-chips-container">
+                <div class="chip" onclick="applyTemplate('Lunch Break', 12.50, 'Food')">🍔 Fast Food ($12.50)</div>
+                <div class="chip" onclick="applyTemplate('Gas Tank Fill', 45.00, 'Transport')">🚗 Fuel ($45.00)</div>
+                <div class="chip" onclick="applyTemplate('Movie Ticket', 15.00, 'Entertainment')">🎬 Movies ($15.00)</div>
+            </div>
 
             <div class="form-row">
                 <input type="text" id="exp-name" placeholder="Expense description">
-                <input type="number" id="exp-amount" placeholder="Amount ($)">
+                <input type="number" id="exp-amount" placeholder="Amount ($)" min="0.01" step="0.01">
                 <select id="exp-category">
                     <option value="Food">🍔 Food</option>
                     <option value="Transport">🚗 Transport</option>
@@ -161,7 +474,7 @@
                 <input type="time" id="exp-time">
             </div>
             <div class="form-row">
-                <button class="action-btn" style="flex:2;" onclick="addCustomExpense()">Log Transaction</button>
+                <button class="action-btn" style="flex:2;" onclick="addCustomExpense()">Log Outflow</button>
                 <button class="action-btn secondary" style="flex:1;" onclick="saveAsNewTemplate()">Save Template</button>
             </div>
         </div>
@@ -169,8 +482,8 @@
         <div class="card">
             <h2>Variable Outflows <span>Chronological Ledger</span></h2>
             <div class="form-row" style="margin-top:5px;">
-                <input type="text" id="search-box" placeholder="🔍 Search description..." oninput="renderVariableExpenseList()">
-                <select id="filter-category" onchange="renderVariableExpenseList()">
+                <input type="text" id="search-box" placeholder="🔍 Search description..." oninput="renderMasterLists()">
+                <select id="filter-category" onchange="renderMasterLists()">
                     <option value="ALL">All Categories</option>
                     <option value="Food">🍔 Food</option>
                     <option value="Transport">🚗 Transport</option>
@@ -183,84 +496,67 @@
             </div>
 
             <div style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 5px;">
-                <button class="interval-btn active" id="filter-sw-all" onclick="setVerificationFilter('ALL')" style="font-size:0.75rem; padding:4px 10px;">All</button>
-                <button class="interval-btn" id="filter-sw-new" onclick="setVerificationFilter('NEW')" style="font-size:0.75rem; padding:4px 10px;">New 🟡</button>
-                <button class="interval-btn" id="filter-sw-reviewed" onclick="setVerificationFilter('REVIEWED')" style="font-size:0.75rem; padding:4px 10px;">Reviewed ✅</button>
+                <button class="interval-btn active" id="filter-sw-all" onclick="setVerificationFilter('ALL')">All Records</button>
+                <button class="interval-btn" id="filter-sw-new" onclick="setVerificationFilter('NEW')">New 🟡</button>
+                <button class="interval-btn" id="filter-sw-reviewed" onclick="setVerificationFilter('REVIEWED')">Reviewed ✅</button>
             </div>
             
-            <div id="expense-day-matrix" class="list-container" style="margin-top:15px;"></div>
+            <div id="expense-day-matrix" class="list-container" style="margin-top:15px;">No matches.</div>
         </div>
     </section>
 
     <section id="recurring-page" class="view-page" style="display:none;">
         <div class="card">
-            <h2>Income Streams <span>Recurring Revenue</span></h2>
+            <h2>Income Streams <span>Recurring Contractual Revenue</span></h2>
             <div class="form-row">
                 <input type="text" id="inc-name" placeholder="Source Label">
                 <input type="number" id="inc-amount" placeholder="Amount ($)">
-                <select id="inc-freq">
-                    <option value="month">Per Month</option>
-                    <option value="week">Per Week</option>
-                    <option value="year">Per Year</option>
-                </select>
-                <button class="action-btn" onclick="addIncome()">Add</button>
+                <button class="action-btn" onclick="addRecurringIncomeStream()">Add Stream</button>
             </div>
-            <div id="income-list" class="list-container"></div>
+            <div id="income-list" class="list-container">No recurring streams parsed.</div>
         </div>
 
         <div class="card">
-            <h2>Monthly Payments <span>Recurring Costs</span></h2>
+            <h2>Monthly Payments <span>Subscription Outflows</span></h2>
             <div class="form-row">
                 <input type="text" id="rec-name" placeholder="Subscription/Supply Label">
                 <input type="number" id="rec-amount" placeholder="Cost ($)">
-                <select id="rec-freq">
-                    <option value="month">Every Month</option>
-                    <option value="week">Every Week</option>
-                </select>
-                <button class="action-btn" onclick="addRecurring()">Add</button>
+                <button class="action-btn" onclick="addRecurringSpentSubscription()">Add Subscription</button>
             </div>
-            <div id="recurring-list" class="list-container"></div>
+            <div id="recurring-list" class="list-container">No monthly subscriptions listed.</div>
         </div>
     </section>
 
     <section id="analytics-page" class="view-page" style="display:none;">
         <div class="card">
-            <h2>Your Stock Portfolio</h2>
+            <h2>Your Stock Portfolio Valuation Engine</h2>
             <div id="portfolio-summary" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:20px;">
                 <div style="background:rgba(255,255,255,0.04); padding:14px; border-radius:12px; border:1px solid var(--card-border);">
-                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;">Total Value</div>
+                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;">Estimated Portfolio Net Asset Value</div>
                     <div id="portfolio-total-value" style="font-size:1.4rem; font-weight:700; color:var(--primary);">$0.00</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.04); padding:14px; border-radius:12px; border:1px solid var(--card-border);">
-                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;">Total Invested</div>
-                    <div id="portfolio-total-invested" style="font-size:1.4rem; font-weight:700; color:var(--primary);">$0.00</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.04); padding:14px; border-radius:12px; border:1px solid var(--card-border);">
-                    <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:4px;">Total Gain/Loss</div>
-                    <div id="portfolio-total-gain" style="font-size:1.4rem; font-weight:700; color:var(--success);">$0.00</div>
                 </div>
             </div>
         </div>
         
         <div class="card">
-            <h2>Add Investment</h2>
+            <h2>Add Investment Holdings</h2>
             <div class="form-row">
-                <input type="text" id="stock-ticker" placeholder="Stock Ticker (e.g. AAPL)">
-                <input type="number" id="stock-shares" placeholder="Shares Count" min="0.01" step="0.01">
-                <input type="number" id="stock-price" placeholder="Buy Price ($)" min="0.01" step="0.01">
+                <input type="text" id="stock-ticker" placeholder="Asset Ticker (e.g. AAPL)">
+                <input type="number" id="stock-shares" placeholder="Shares Amount" min="0.01" step="0.01">
+                <input type="number" id="stock-price" placeholder="Cost Price Basis ($)" min="0.01" step="0.01">
             </div>
             <div class="form-row">
-                <button class="action-btn" onclick="addStock()">Add Stock</button>
+                <button class="action-btn" style="width: 100%;" onclick="addStockAssetItem()">Log Holdings Unit</button>
             </div>
         </div>
 
         <div class="card">
-            <h2>Your Holdings</h2>
-            <div id="stock-list" class="list-container"></div>
+            <h2>Individual Active Ledger Holdings</h2>
+            <div id="stock-list" class="list-container">No items currently active in allocation.</div>
         </div>
 
         <div class="card">
-            <h2>Category Breakdown</h2>
+            <h2>Category Allocation Mix</h2>
             <div style="max-width: 320px; margin: 0 auto 20px auto;">
                 <canvas id="analyticsChart"></canvas>
             </div>
@@ -269,67 +565,504 @@
 
     <section id="settings-page" class="view-page" style="display:none;">
         <div class="card">
-            <h2>Ecosystem Preferences</h2>
-            <div class="theme-select-row">
-                <label class="dash-label">Application UI Theme Framework</label>
+            <h2>Ecosystem Visual Configurations</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="dash-label">Application Interface Visual System</label>
                 <select id="theme-select" onchange="applyTheme(this.value)">
-                    <option value="dark">Space Dark Mode</option>
-                    <option value="light">Reflective Light Mode</option>
+                    <option value="dark">Space Dark Mode Engine</option>
+                    <option value="light">Reflective Light Mode Engine</option>
                 </select>
             </div>
         </div>
 
         <div class="card">
-            <h2>Financial Strategy Configuration</h2>
-            <div class="form-row" style="justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <label class="dash-label">Target Savings Allocation Rate</label>
+            <h2>Financial Strategy Target Engine</h2>
+            <div class="form-row" style="justify-content: space-between; align-items: center;">
+                <label class="dash-label">Target Automated Savings Percent Allocation Check</label>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="number" id="strategy-savings-pct" min="0" max="100" style="max-width: 80px; text-align: center;" oninput="updateSavingsRule(this.value)">
-                    <span style="font-weight: bold; color: var(--primary);">%</span>
+                    <select id="savings-select" onchange="updateSavingsRule(this.value)" style="padding: 8px;">
+                        <option value="10">10%</option>
+                        <option value="15">15%</option>
+                        <option value="20" selected>20%</option>
+                        <option value="25">25%</option>
+                        <option value="30">30%</option>
+                    </select>
                 </div>
             </div>
         </div>
         
         <div class="card">
-            <h2>System Data Operations</h2>
+            <h2>System Database Utilities</h2>
             <div class="form-row">
-                <button class="footer-btn download-btn" onclick="downloadStructuredCSV()">📥 Export Ledger (.CSV)</button>
-                <button class="footer-btn reset-btn" onclick="resetSystemData()">Wipe Database Storage</button>
+                <button class="footer-btn download-btn" onclick="downloadStructuredCSV()">📥 Export Comprehensive Ledger (.CSV)</button>
+                <button class="footer-btn reset-btn" onclick="resetSystemData()">Wipe Local Storage Cache</button>
             </div>
         </div>
     </section>
 </div>
 
-<script src="js/app.js?v=4.0"></script>
-<script src="js/charts.js"></script>
+<script>
+    // Global Local Application Arrays (Database memory simulations)
+    let records = { 
+        income: [], 
+        expenses: [], 
+        recurringInc: [], 
+        recurringExp: [], 
+        portfolio: [] 
+    };
 
-    <script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js')
-        .then(registration => {
-            console.log('Service Worker Registered');
+    let categoryLimits = { Food: 300, Transport: 150, Housing: 1000, Entertainment: 200, Shopping: 200, Health: 100, Education: 100 };
+    
+    // Default Engine Settings states
+    let currentIntervalMode = "month"; 
+    let currentVerificationState = "ALL";
+    let strategicSavingsPercent = 20;
 
-            if (registration.waiting) {
-                registration.waiting.postMessage({ action: 'skipWaiting' });
-            }
+    // Charts references container
+    let incomeChartRef = null, spendingChartRef = null, analyticsChartRef = null;
 
-            registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (!newWorker) return;
+    // Initialization setups 
+    window.onload = function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('exp-date').value = today;
+        document.getElementById('onetime-date').value = today;
+        document.getElementById('date-filter').value = today; // Init filter to today
+        document.getElementById('exp-time').value = "12:00";
+        
+        renderBudgetLimitWidget();
+        renderMasterLists();
+    };
 
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        newWorker.postMessage({ action: 'skipWaiting' });
-                    }
-                });
+    function formatCurrency(v) { return "$" + parseFloat(v || 0).toFixed(2); }
+
+    // Navigation Panels system
+    function showPage(pageId) {
+        document.querySelectorAll('.view-page').forEach(p => p.style.display = 'none');
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(pageId + '-page').style.display = 'block';
+        document.getElementById('nav-' + pageId).classList.add('active');
+        
+        if (pageId === 'analytics') { buildAnalyticsPieChart(); }
+    }
+
+    // Interval Selector Engine Adjustment - Shows/Hides appropriate calendar filters
+    function changeInterval(mode) {
+        currentIntervalMode = mode;
+        document.querySelectorAll('.interval-selector .interval-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + mode).classList.add('active');
+        document.getElementById('view-title').innerText = mode.charAt(0).toUpperCase() + mode.slice(1);
+        
+        // Dynamic Filter Visibility Routine
+        document.getElementById('filter-box-day').style.display = (mode === 'day') ? 'block' : 'none';
+        document.getElementById('filter-box-month').style.display = (mode === 'month') ? 'block' : 'none';
+        document.getElementById('filter-box-year').style.display = (mode === 'year' || mode === 'month') ? 'block' : 'none';
+        
+        renderMasterLists();
+    }
+
+    // Comprehensive Dynamic Timeframe Filter Engine
+    function isRecordInCurrentTimeframe(recordDateStr) {
+        if (!recordDateStr) return true; 
+        
+        const recDate = new Date(recordDateStr + 'T00:00:00');
+        const recYear = recDate.getFullYear().toString();
+        const recMonth = String(recDate.getMonth() + 1).padStart(2, '0');
+        
+        // 1. Handle Daily View Filtering
+        if (currentIntervalMode === "day") {
+            const targetDate = document.getElementById('date-filter').value;
+            return recordDateStr === targetDate;
+        } 
+        
+        // 2. Handle Monthly View Filtering
+        if (currentIntervalMode === "month") {
+            const targetYear = document.getElementById('year-filter').value;
+            const targetMonth = document.getElementById('month-filter').value;
+            
+            if (recYear !== targetYear) return false;
+            if (targetMonth !== "ALL" && recMonth !== targetMonth) return false;
+            return true;
+        }
+        
+        // 3. Handle Yearly View Filtering
+        if (currentIntervalMode === "year") {
+            const targetYear = document.getElementById('year-filter').value;
+            return recYear === targetYear;
+        }
+        
+        return true; 
+    }
+
+    // Core Operational Calculations Framework update loop
+    function renderMasterLists() {
+        // --- FILTERS SUB-ROUTINE EVALUATIONS ---
+        let filteredIncome = records.income.filter(item => isRecordInCurrentTimeframe(item.date));
+        let filteredExpenses = records.expenses.filter(item => isRecordInCurrentTimeframe(item.date));
+
+        // Math totals allocations logic
+        let totalTimeframeIncome = filteredIncome.reduce((s, i) => s + i.amount, 0);
+        let totalTimeframeSpent = filteredExpenses.reduce((s, e) => s + e.amount, 0);
+        
+        // Append baseline subscriptions parameters calculations 
+        let recurringMonthlyIncSum = records.recurringInc.reduce((s, i) => s + i.amount, 0);
+        let recurringMonthlyExpSum = records.recurringExp.reduce((s, e) => s + e.amount, 0);
+
+        if (currentIntervalMode === "day") {
+            totalTimeframeIncome += (recurringMonthlyIncSum / 30);
+            totalTimeframeSpent += (recurringMonthlyExpSum / 30);
+        } else if (currentIntervalMode === "year") {
+            totalTimeframeIncome += (recurringMonthlyIncSum * 12);
+            totalTimeframeSpent += (recurringMonthlyExpSum * 12);
+        } else { 
+            totalTimeframeIncome += recurringMonthlyIncSum;
+            totalTimeframeSpent += recurringMonthlyExpSum;
+        }
+
+        let dynamicCalculatedNetSavings = totalTimeframeIncome * (strategicSavingsPercent / 100);
+        let dynamicCalculatedPortfolioAssets = records.portfolio.reduce((s, p) => s + (p.shares * p.price), 0);
+        let definitiveNetBalanceResult = totalTimeframeIncome - totalTimeframeSpent;
+
+        // Display update targets updates executions
+        document.getElementById('dash-income').innerText = formatCurrency(totalTimeframeIncome);
+        document.getElementById('dash-burn').innerText = formatCurrency(totalTimeframeSpent);
+        document.getElementById('dash-savings').innerText = formatCurrency(dynamicCalculatedNetSavings);
+        document.getElementById('dash-stocks').innerText = formatCurrency(dynamicCalculatedPortfolioAssets);
+        document.getElementById('dash-budget').innerText = formatCurrency(definitiveNetBalanceResult);
+
+        // --- RENDER CARD 1 LIST: ONETIME LOGGING MANIFEST HISTORY LIST ---
+        let onetimeListDiv = document.getElementById('onetime-list');
+        if(filteredIncome.length === 0) {
+            onetimeListDiv.innerText = "No income records in current filter window.";
+        } else {
+            onetimeListDiv.innerHTML = "";
+            filteredIncome.forEach(item => {
+                onetimeListDiv.innerHTML += `<div class="ledger-item"><span>💝 ${item.source} (${item.date})</span><span style="color:var(--success)">+${formatCurrency(item.amount)}</span></div>`;
             });
-        })
-        .catch(err => console.log('Service Worker Error:', err));
+        }
 
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-    });
-}
+        // --- RENDER CARD 2 LIST: WHERE YOUR MONEY COMES FROM SUMMARY MAPS ---
+        let incomeSourceSummaryDiv = document.getElementById('income-sources-list');
+        if(filteredIncome.length === 0 && recurringMonthlyIncSum === 0) {
+            incomeSourceSummaryDiv.innerText = "No active operational income sources metrics verified.";
+        } else {
+            incomeSourceSummaryDiv.innerHTML = "";
+            let sourceMapData = {};
+            filteredIncome.forEach(i => sourceMapData[i.source] = (sourceMapData[i.source] || 0) + i.amount);
+            if(recurringMonthlyIncSum > 0) sourceMapData["Contractual Recurring Streams"] = (sourceMapData["Contractual Recurring Streams"] || 0) + recurringMonthlyIncSum;
+            
+            for(let key in sourceMapData) {
+                incomeSourceSummaryDiv.innerHTML += `<div class="ledger-item"><span>💼 ${key}</span><span style="color:var(--success)">${formatCurrency(sourceMapData[key])}</span></div>`;
+            }
+        }
+
+        // --- RENDER CARD 3 LIST: WHERE YOUR MONEY GOES SUMMARY MAPS ---
+        let spendingBreakdownSummaryDiv = document.getElementById('spending-breakdown-list');
+        if(filteredExpenses.length === 0 && recurringMonthlyExpSum === 0) {
+            spendingBreakdownSummaryDiv.innerText = "No active spending metrics verified.";
+        } else {
+            spendingBreakdownSummaryDiv.innerHTML = "";
+            let spendingMapData = {};
+            filteredExpenses.forEach(e => spendingMapData[e.category] = (spendingMapData[e.category] || 0) + e.amount);
+            if(recurringMonthlyExpSum > 0) spendingMapData["Fixed Subscriptions Costs"] = (spendingMapData["Fixed Subscriptions Costs"] || 0) + recurringMonthlyExpSum;
+            
+            for(let key in spendingMapData) {
+                spendingBreakdownSummaryDiv.innerHTML += `<div class="ledger-item"><span>🛍️ ${key}</span><span style="color:var(--danger)">${formatCurrency(spendingMapData[key])}</span></div>`;
+            }
+        }
+
+        // --- RENDER CARD 4 LIST: CHRONOLOGICAL SEARCHABLE LEDGER OUTFLOW MATRIX LIST ---
+        let searchString = document.getElementById('search-box').value.toLowerCase();
+        let catSelectionFilter = document.getElementById('filter-category').value;
+        let matrixLedgerDiv = document.getElementById('expense-day-matrix');
+        matrixLedgerDiv.innerHTML = "";
+
+        let doubleFilteredOutflows = filteredExpenses.filter(item => {
+            let matchesSearchQuery = item.name.toLowerCase().includes(searchString);
+            let matchesCategoryQuery = (catSelectionFilter === 'ALL' || item.category === catSelectionFilter);
+            let matchesStateVerification = (currentVerificationState === 'ALL' || item.status === currentVerificationState);
+            return matchesSearchQuery && matchesCategoryQuery && matchesStateVerification;
+        });
+
+        if(doubleFilteredOutflows.length === 0) {
+            matrixLedgerDiv.innerText = "No transactions matched criteria filters inside frame.";
+        } else {
+            doubleFilteredOutflows.forEach((item) => {
+                let actualGlobalArrayIndex = records.expenses.indexOf(item);
+                matrixLedgerDiv.innerHTML += `
+                    <div class="ledger-item">
+                        <span>${item.status === 'NEW' ? '🟡' : '✅'} <strong>${item.name}</strong> (${item.category}) <small style="color:var(--text-muted)">${item.date}</small></span>
+                        <div>
+                            <span style="color:var(--danger); font-weight:bold; margin-right:10px;">-${formatCurrency(item.amount)}</span>
+                            <button style="font-size:0.7rem; padding:2px 5px; cursor:pointer;" onclick="verifyTransaction(${actualGlobalArrayIndex})">Check off</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // Core system metrics updates loops subhooks calls execution
+        renderBudgetOverviewMatrix(filteredExpenses);
+        buildIncomeChart(filteredIncome, recurringMonthlyIncSum);
+        buildSpendingChart(filteredExpenses, recurringMonthlyExpSum);
+    }
+
+    // Input actions processors metrics updates logic mappings
+    function addOneTimeMoney() {
+        let src = document.getElementById('onetime-source').value;
+        let amt = parseFloat(document.getElementById('onetime-amount').value);
+        let dateVal = document.getElementById('onetime-date').value;
+        if(!amt || amt <= 0 || !dateVal) return alert("Please specify valid amount values and select target execution date parameters.");
+
+        records.income.push({ source: src, amount: amt, date: dateVal });
+        document.getElementById('onetime-amount').value = "";
+        renderMasterLists();
+    }
+
+    function addCustomExpense() {
+        let name = document.getElementById('exp-name').value || "Variable Outflow Line item";
+        let amt = parseFloat(document.getElementById('exp-amount').value);
+        let cat = document.getElementById('exp-category').value;
+        let dateVal = document.getElementById('exp-date').value;
+        if(!amt || amt <= 0 || !dateVal) return alert("Please fill standard numerical costs values and verification dates items inputs.");
+
+        records.expenses.push({ name: name, amount: amt, category: cat, date: dateVal, status: 'NEW' });
+        document.getElementById('exp-name').value = "";
+        document.getElementById('exp-amount').value = "";
+        renderMasterLists();
+    }
+
+    function applyTemplate(name, val, cat) {
+        document.getElementById('exp-name').value = name;
+        document.getElementById('exp-amount').value = val;
+        document.getElementById('exp-category').value = cat;
+    }
+
+    function saveAsNewTemplate() {
+        let name = document.getElementById('exp-name').value;
+        let amt = document.getElementById('exp-amount').value;
+        let cat = document.getElementById('exp-category').value;
+        if(!name || !amt) return alert("Populate workflow inputs targets fields first.");
+
+        let wrapper = document.getElementById('quick-chips-wrapper');
+        wrapper.innerHTML += `<div class="chip" onclick="applyTemplate('${name}', ${amt}, '${cat}')">📌 ${name} ($${amt})</div>`;
+    }
+
+    function verifyTransaction(globalIndex) {
+        records.expenses[globalIndex].status = 'REVIEWED';
+        renderMasterLists();
+    }
+
+    function setVerificationFilter(mode) {
+        currentVerificationState = mode;
+        document.getElementById('filter-sw-all').classList.remove('active');
+        document.getElementById('filter-sw-new').classList.remove('active');
+        document.getElementById('filter-sw-reviewed').classList.remove('active');
+        
+        if(mode === 'ALL') document.getElementById('filter-sw-all').classList.add('active');
+        if(mode === 'NEW') document.getElementById('filter-sw-new').classList.add('active');
+        if(mode === 'REVIEWED') document.getElementById('filter-sw-reviewed').classList.add('active');
+        
+        renderMasterLists();
+    }
+
+    // Dynamic configuration caps widgets
+    function renderBudgetLimitWidget() {
+        let cat = document.getElementById('budget-cat-select').value;
+        document.getElementById('budget-limit-info').innerText = `Configured allowance tracking threshold profile cap limit for ${cat} runs at: ${formatCurrency(categoryLimits[cat])}`;
+    }
+
+    function saveBudgetLimit() {
+        let cat = document.getElementById('budget-cat-select').value;
+        let inputVal = parseFloat(document.getElementById('budget-limit-input').value);
+        if(!inputVal || inputVal <= 0) return alert("Provide real standard values limit matrix settings configuration numerical numbers inputs.");
+
+        categoryLimits[cat] = inputVal;
+        renderBudgetLimitWidget();
+        renderMasterLists();
+    }
+
+    function renderBudgetOverviewMatrix(currentFrameExpenses) {
+        let matrix = document.getElementById('copilot-budget-matrix');
+        matrix.innerHTML = "";
+        
+        let categories = Object.keys(categoryLimits);
+        categories.forEach(cat => {
+            let limit = categoryLimits[cat];
+            let spent = currentFrameExpenses.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0);
+            if(spent > 0 || limit !== 200) {
+                let statusColor = spent > limit ? 'var(--danger)' : 'var(--success)';
+                matrix.innerHTML += `<div class="ledger-item"><span>${cat} Progress Metrics Window (Max Allowable Cap: ${formatCurrency(limit)})</span><span style="color:${statusColor}; font-weight:bold;">${formatCurrency(spent)} processed entries</span></div>`;
+            }
+        });
+        if(matrix.innerHTML === "") matrix.innerText = "All tracking operational components functioning inside safe condition models profiles balances.";
+    }
+
+    // Recurring Page methods mapping
+    function addRecurringIncomeStream() {
+        let label = document.getElementById('inc-name').value || "Monthly Allocation Income Stream";
+        let val = parseFloat(document.getElementById('inc-amount').value);
+        if(!val || val <= 0) return alert("Provide verification amounts inputs.");
+        
+        records.recurringInc.push({ label: label, amount: val });
+        let container = document.getElementById('income-list');
+        if(container.innerText.includes("No recurring")) container.innerHTML = "";
+        container.innerHTML += `<div class="ledger-item"><span>💼 ${label}</span><span style="color:var(--success)">+${formatCurrency(val)}/mo</span></div>`;
+        
+        document.getElementById('inc-name').value = "";
+        document.getElementById('inc-amount').value = "";
+        renderMasterLists();
+    }
+
+    function addRecurringSpentSubscription() {
+        let label = document.getElementById('rec-name').value || "Subscription Package Link Cost";
+        let val = parseFloat(document.getElementById('rec-amount').value);
+        if(!val || val <= 0) return alert("Provide numeric tracking value requirements.");
+
+        records.recurringExp.push({ label: label, amount: val });
+        let container = document.getElementById('recurring-list');
+        if(container.innerText.includes("No monthly")) container.innerHTML = "";
+        container.innerHTML += `<div class="ledger-item"><span>CNTRCT 💳 ${label}</span><span style="color:var(--danger)">-${formatCurrency(val)}/mo</span></div>`;
+        
+        document.getElementById('rec-name').value = "";
+        document.getElementById('rec-amount').value = "";
+        renderMasterLists();
+    }
+
+    // Analytics Portfolios mapping logic
+    function addStockAssetItem() {
+        let ticker = document.getElementById('stock-ticker').value.toUpperCase();
+        let shares = parseFloat(document.getElementById('stock-shares').value);
+        let price = parseFloat(document.getElementById('stock-price').value);
+        if(!ticker || !shares || !price) return alert("Please fill operational matrix arrays elements values targets.");
+
+        records.portfolio.push({ ticker: ticker, shares: shares, price: price });
+        
+        let container = document.getElementById('stock-list');
+        if(container.innerText.includes("No individual")) container.innerHTML = "";
+        container.innerHTML += `<div class="ledger-item"><span>📈 ${ticker} Asset Allocation unit</span><span>${shares} Units held @ basis price cost ${formatCurrency(price)}</span></div>`;
+        
+        let currentTotalInvested = records.portfolio.reduce((sum, item) => sum + (item.shares * item.price), 0);
+        document.getElementById('portfolio-total-value').innerText = formatCurrency(currentTotalInvested);
+        
+        document.getElementById('stock-ticker').value = "";
+        document.getElementById('stock-shares').value = "";
+        document.getElementById('stock-price').value = "";
+        renderMasterLists();
+    }
+
+    // View Panel Toggling Sub-routines
+    function toggleIncomeView(v) {
+        document.getElementById('income-view-list').style.display = v === 'list' ? 'block' : 'none';
+        document.getElementById('income-view-chart').style.display = v === 'chart' ? 'block' : 'none';
+        document.getElementById('inc-toggle-list').classList.toggle('active', v==='list');
+        document.getElementById('inc-toggle-chart').classList.toggle('active', v==='chart');
+    }
+
+    function toggleSpendingView(v) {
+        document.getElementById('spending-view-list').style.display = v === 'list' ? 'block' : 'none';
+        document.getElementById('spending-view-chart').style.display = v === 'chart' ? 'block' : 'none';
+        document.getElementById('exp-toggle-list').classList.toggle('active', v==='list');
+        document.getElementById('exp-toggle-chart').classList.toggle('active', v==='chart');
+    }
+
+    // Charting Engine Implementation Systems
+    function buildIncomeChart(filteredIncome, recurringSum) {
+        let canvasElement = document.getElementById('incomeChart');
+        if(!canvasElement) return;
+        let ctx = canvasElement.getContext('2d');
+        if(incomeChartRef) incomeChartRef.destroy();
+        
+        let sources = filteredIncome.map(i => i.source);
+        let amts = filteredIncome.map(i => i.amount);
+        if(recurringSum > 0) { sources.push("Recurring Streams"); amts.push(recurringSum); }
+
+        incomeChartRef = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sources.length ? sources : ["No Data Inputs Loaded"],
+                datasets: [{ label: 'Timeline Channels Inputs Balance Allocation Profile', data: amts.length ? amts : [0], backgroundColor: '#4ade80' }]
+            },
+            options: { responsive: true }
+        });
+    }
+
+    function buildSpendingChart(filteredExpenses, recurringSum) {
+        let canvasElement = document.getElementById('spendingChart');
+        if(!canvasElement) return;
+        let ctx = canvasElement.getContext('2d');
+        if(spendingChartRef) spendingChartRef.destroy();
+
+        let categories = ["Food", "Transport", "Housing", "Entertainment", "Shopping", "Health", "Education"];
+        let dataMapValues = categories.map(cat => filteredExpenses.filter(e => e.category === cat).reduce((s,e)=> s+e.amount, 0));
+        if(recurringSum > 0) { categories.push("Subscriptions"); dataMapValues.push(recurringSum); }
+
+        spendingChartRef = new Chart(ctx, {
+            type: 'polarArea',
+            data: {
+                labels: categories,
+                datasets: [{ data: dataMapValues, backgroundColor: ['#ef4444','#3b82f6','#eab308','#a855f7','#ec4899','#14b8a6','#f97316','#9ca3af'] }]
+            },
+            options: { responsive: true }
+        });
+    }
+
+    function buildAnalyticsPieChart() {
+        let canvasElement = document.getElementById('analyticsChart');
+        if(!canvasElement) return;
+        let ctx = canvasElement.getContext('2d');
+        if(analyticsChartRef) analyticsChartRef.destroy();
+
+        let tickers = records.portfolio.map(p => p.ticker);
+        let allocations = records.portfolio.map(p => p.shares * p.price);
+
+        analyticsChartRef = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: tickers.length ? tickers : ["No Holdings Assets Profiles Detected"],
+                datasets: [{ data: allocations.length ? allocations : [1], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'] }]
+            },
+            options: { responsive: true }
+        });
+    }
+
+    // Preferences & Settings Engine Commands
+    function applyTheme(theme) {
+        if(theme === 'light') { document.body.classList.add('light-theme'); } 
+        else { document.body.classList.remove('light-theme'); }
+    }
+
+    function updateSavingsRule(val) {
+        strategicSavingsPercent = parseFloat(val) || 0;
+        renderMasterLists();
+    }
+
+    // Structured CSV Engine Data Exporter
+    function downloadStructuredCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,Type,Label,Amount,ExecutionDate\n";
+        records.income.forEach(i => csvContent += `Income,${i.source},${i.amount},${i.date}\n`);
+        records.expenses.forEach(e => csvContent += `Expense,${e.name},${e.amount},${e.date}\n`);
+        
+        let encodedUri = encodeURI(csvContent);
+        let link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "financial_ledger_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function resetSystemData() {
+        if(confirm("Are you sure you want to completely clear out data metrics? All progress deletes.")) {
+            records = { income: [], expenses: [], recurringInc: [], recurringExp: [], portfolio: [] };
+            document.getElementById('onetime-list').innerText = "No income records in current filter window.";
+            document.getElementById('expense-day-matrix').innerText = "No matches.";
+            document.getElementById('income-list').innerText = "No recurring streams parsed.";
+            document.getElementById('recurring-list').innerText = "No monthly subscriptions listed.";
+            document.getElementById('stock-list').innerText = "No items currently active in allocation.";
+            renderMasterLists();
+            showPage('dashboard');
+        }
+    }
 </script>
 
 </body>

@@ -1,28 +1,20 @@
 #!/usr/bin/env python3
 import re
+import os
 
-# Read the current file
-with open('js/app.js', 'r', encoding='utf-8') as f:
-    content = f.read()
+def patch_application_core():
+    target_path = 'js/app.js'
+    
+    if not os.path.exists(target_path):
+        print(f"Error: Target console core file '{target_path}' not found.")
+        return
 
-# Find the start of renderIncomeSourcesList
-start_marker = 'function renderIncomeSourcesList() {'
-start_idx = content.find(start_marker)
+    # Read the current architecture build
+    with open(target_path, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-if start_idx == -1:
-    print("Could not find renderIncomeSourcesList")
-    exit(1)
-
-# Find the start of renderCopilotCategoryMetrics (the next major function that's clean)
-end_marker = 'function renderCopilotCategoryMetrics() {'
-end_idx = content.find(end_marker, start_idx)
-
-if end_idx == -1:
-    print("Could not find renderCopilotCategoryMetrics")
-    exit(1)
-
-# The replacement text - all rendering functions cleanly
-replacement = '''function renderIncomeSourcesList() {
+    # Cleaned, standardized UI block matrix strings
+    replacement_block = '''function renderIncomeSourcesList() {
     const list = document.getElementById('income-sources-list');
     if(!list) return;
     list.innerHTML = '';
@@ -34,7 +26,7 @@ replacement = '''function renderIncomeSourcesList() {
     
     const totalIncome = coreLedger.inflows.reduce((acc, curr) => acc + curr.amount, 0);
     coreLedger.inflows.forEach(income => {
-        const percent = ((income.amount / totalIncome) * 100).toFixed(1);
+        const percent = totalIncome > 0 ? ((income.amount / totalIncome) * 100).toFixed(1) : 0;
         const html = '<div style="margin-bottom:12px; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--card-border);">' +
             '<div style="display:flex; justify-content:space-between; align-items:center;">' +
             '<div style="flex:1;">' +
@@ -114,7 +106,7 @@ function renderSpendingBreakdown() {
     
     Object.entries(breakdown).forEach(([category, amount]) => {
         const icon = categoryMetadata[category]?.icon || '💸';
-        const percent = ((amount / totalSpending) * 100).toFixed(1);
+        const percent = totalSpending > 0 ? ((amount / totalSpending) * 100).toFixed(1) : 0;
         const html = '<div style="margin-bottom:12px; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--card-border);">' +
             '<div style="display:flex; justify-content:space-between; align-items:center;">' +
             '<div style="flex:1;">' +
@@ -183,13 +175,24 @@ function renderSpendingChart() {
     });
 }
 
-'''
+\n'''
 
-# Replace the corrupted section
-new_content = content[:start_idx] + replacement + content[end_idx:]
+    # Pattern captures everything from function declaration up to the next target block definition
+    pattern = re.compile(
+        r'function\s+renderIncomeSourcesList\s*\([\s\S]*?(?=function\s+renderCopilotCategoryMetrics\s*\()'
+    )
 
-# Write back
-with open('js/app.js', 'w', encoding='utf-8') as f:
-    f.write(new_content)
+    if not pattern.search(content):
+        print("Error: Could not locate the injection signature markers inside your file structure.")
+        return
 
-print("Fixed app.js successfully!")
+    # Inject safe array blocks cleanly
+    updated_content = pattern.sub(replacement_block, content)
+
+    with open(target_path, 'w', encoding='utf-8') as f:
+        f.write(updated_content)
+
+    print("Success: App.js parsing complete. Dynamic tracking functions patched.")
+
+if __name__ == '__main__':
+    patch_application_core()
