@@ -125,16 +125,18 @@
         .interval-selector {
             display: flex;
             gap: 6px;
+            flex-wrap: wrap;
         }
 
         .interval-btn {
             background: rgba(255,255,255,0.05);
             border: 1px solid var(--card-border);
             color: var(--text-muted);
-            padding: 8px 16px;
+            padding: 8px 14px;
             border-radius: 6px;
             cursor: pointer;
             font-family: inherit;
+            font-size: 0.85rem;
         }
 
         .interval-btn.active {
@@ -203,7 +205,6 @@
             font-family: inherit;
         }
 
-        /* FIX: Prevents unreadable white-on-white text inside dropdown menus */
         select option {
             background-color: var(--card-bg);
             color: var(--text);
@@ -301,13 +302,17 @@
         
         <div class="filter-control-panel">
             <div class="interval-selector">
-                <button class="interval-btn" id="btn-day" onclick="changeInterval('day')">Daily View</button>
-                <button class="interval-btn active" id="btn-month" onclick="changeInterval('month')">Monthly View</button>
-                <button class="interval-btn" id="btn-year" onclick="changeInterval('year')">Yearly View</button>
+                <button class="interval-btn" id="btn-day" onclick="changeInterval('day')">Daily</button>
+                <button class="interval-btn" id="btn-week" onclick="changeInterval('week')">Weekly</button>
+                <button class="interval-btn" id="btn-biweek" onclick="changeInterval('biweek')">Bi-weekly</button>
+                <button class="interval-btn active" id="btn-month" onclick="changeInterval('month')">Monthly</button>
+                <button class="interval-btn" id="btn-year" onclick="changeInterval('year')">Yearly</button>
+                <button class="interval-btn" id="btn-2year" onclick="changeInterval('2year')">2-Year Span</button>
+                <button class="interval-btn" id="btn-alltime" onclick="changeInterval('alltime')">All-Time</button>
             </div>
             
             <div id="filter-box-day" style="display:none;">
-                <label for="date-filter" style="font-size:0.85rem; color:var(--text-muted); margin-right:5px;">Select Day:</label>
+                <label id="date-picker-label" for="date-filter" style="font-size:0.85rem; color:var(--text-muted); margin-right:5px;">Select Date:</label>
                 <input type="date" id="date-filter" class="calendar-dropdown" onchange="renderMasterLists()">
             </div>
 
@@ -332,14 +337,7 @@
 
             <div id="filter-box-year">
                 <label for="year-filter" style="font-size:0.85rem; color:var(--text-muted); margin-right:5px;">Select Year:</label>
-                <select id="year-filter" class="calendar-dropdown" onchange="renderMasterLists()">
-                    <option value="2024">2024</option>
-                    <option value="2025">2025</option>
-                    <option value="2026" selected>2026</option>
-                    <option value="2027">2027</option>
-                    <option value="2028">2028</option>
-                    <option value="2029">2029</option>
-                </select>
+                <select id="year-filter" class="calendar-dropdown" onchange="renderMasterLists()"></select>
             </div>
         </div>
 
@@ -364,9 +362,16 @@
                     <div class="dash-label">Asset Portfolio Value</div>
                     <div id="dash-stocks" class="dash-val" style="color: var(--accent);">$0.00</div>
                 </div>
-                <div class="dash-box full-width" style="text-align: center;">
-                    <div class="dash-label" style="font-size:1rem;">Net Remaining Balance</div>
-                    <div id="dash-budget" class="dash-val" style="font-size:2.2rem; color: var(--text);">$0.00</div>
+                <div class="dash-box full-width" style="display: flex; justify-content: space-around; align-items: center; text-align: center; padding: 15px 0;">
+                    <div style="flex: 1;">
+                        <div class="dash-label" style="font-size:0.9rem; margin-bottom: 2px;">Net Cash Balance</div>
+                        <div id="dash-budget" class="dash-val" style="font-size:1.8rem; color: var(--text);">$0.00</div>
+                    </div>
+                    <div style="border-left: 1px solid var(--card-border); height: 45px;"></div>
+                    <div style="flex: 1;">
+                        <div class="dash-label" style="font-size:0.9rem; margin-bottom: 2px; font-weight: 600; color: var(--primary);">Total Net Worth</div>
+                        <div id="dash-networth" class="dash-val" style="font-size:1.8rem; color: var(--primary);">$0.00</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -623,10 +628,26 @@
 
     // Initialization setups 
     window.onload = function() {
+        // Dynamic generation architecture for Year Selector Dropdown
+        const yearSelect = document.getElementById('year-filter');
+        const currentYear = new Date().getFullYear();
+        yearSelect.innerHTML = ""; // Clear placeholders
+        
+        for (let year = 2024; year <= 2100; year++) {
+            const option = document.createElement("option");
+            option.value = year;
+            option.textContent = year;
+
+            if (year === currentYear) {
+                option.selected = true;
+            }
+            yearSelect.appendChild(option);
+        }
+
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('exp-date').value = today;
         document.getElementById('onetime-date').value = today;
-        document.getElementById('date-filter').value = today; // Init filter to today
+        document.getElementById('date-filter').value = today;
         document.getElementById('exp-time').value = "12:00";
         
         renderBudgetLimitWidget();
@@ -646,17 +667,26 @@
         if (pageId === 'analytics') { buildAnalyticsPieChart(); }
     }
 
-    // Interval Selector Engine Adjustment - Shows/Hides appropriate calendar filters
+    // Interval Selector Engine Adjustment
     function changeInterval(mode) {
         currentIntervalMode = mode;
         document.querySelectorAll('.interval-selector .interval-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + mode).classList.add('active');
-        document.getElementById('view-title').innerText = mode.charAt(0).toUpperCase() + mode.slice(1);
         
-        // Dynamic Filter Visibility Routine
-        document.getElementById('filter-box-day').style.display = (mode === 'day') ? 'block' : 'none';
+        let labelText = mode.charAt(0).toUpperCase() + mode.slice(1);
+        if (mode === 'biweek') labelText = "Bi-weekly";
+        if (mode === '2year') labelText = "2-Year Span";
+        if (mode === 'alltime') labelText = "All-Time Historical";
+        document.getElementById('view-title').innerText = labelText;
+        
+        const labelObj = document.getElementById('date-picker-label');
+        if (mode === 'day') labelObj.innerText = "Select Day:";
+        if (mode === 'week') labelObj.innerText = "Select Week (Any day within):";
+        if (mode === 'biweek') labelObj.innerText = "Select Bi-week (Any day within):";
+
+        document.getElementById('filter-box-day').style.display = (mode === 'day' || mode === 'week' || mode === 'biweek') ? 'block' : 'none';
         document.getElementById('filter-box-month').style.display = (mode === 'month') ? 'block' : 'none';
-        document.getElementById('filter-box-year').style.display = (mode === 'year' || mode === 'month') ? 'block' : 'none';
+        document.getElementById('filter-box-year').style.display = (mode === 'year' || mode === 'month' || mode === '2year') ? 'block' : 'none';
         
         renderMasterLists();
     }
@@ -668,27 +698,49 @@
         const recDate = new Date(recordDateStr + 'T00:00:00');
         const recYear = recDate.getFullYear().toString();
         const recMonth = String(recDate.getMonth() + 1).padStart(2, '0');
+        const targetDateStr = document.getElementById('date-filter').value;
         
-        // 1. Handle Daily View Filtering
-        if (currentIntervalMode === "day") {
-            const targetDate = document.getElementById('date-filter').value;
-            return recordDateStr === targetDate;
-        } 
+        if (currentIntervalMode === "alltime") return true;
+
+        if (currentIntervalMode === "day") return recordDateStr === targetDateStr;
         
-        // 2. Handle Monthly View Filtering
+        if (currentIntervalMode === "week") {
+            if (!targetDateStr) return true;
+            const pivotDate = new Date(targetDateStr + 'T00:00:00');
+            const startOfWeek = new Date(pivotDate);
+            startOfWeek.setDate(pivotDate.getDate() - pivotDate.getDay());
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            return recDate >= startOfWeek && recDate <= endOfWeek;
+        }
+
+        if (currentIntervalMode === "biweek") {
+            if (!targetDateStr) return true;
+            const pivotDate = new Date(targetDateStr + 'T00:00:00');
+            const startOfBiWeek = new Date(pivotDate);
+            startOfBiWeek.setDate(pivotDate.getDate() - pivotDate.getDay());
+            const endOfBiWeek = new Date(startOfBiWeek);
+            endOfBiWeek.setDate(startOfBiWeek.getDate() + 13);
+            return recDate >= startOfBiWeek && recDate <= endOfBiWeek;
+        }
+
         if (currentIntervalMode === "month") {
             const targetYear = document.getElementById('year-filter').value;
             const targetMonth = document.getElementById('month-filter').value;
-            
             if (recYear !== targetYear) return false;
             if (targetMonth !== "ALL" && recMonth !== targetMonth) return false;
             return true;
         }
         
-        // 3. Handle Yearly View Filtering
         if (currentIntervalMode === "year") {
             const targetYear = document.getElementById('year-filter').value;
             return recYear === targetYear;
+        }
+
+        if (currentIntervalMode === "2year") {
+            const targetYear = parseInt(document.getElementById('year-filter').value);
+            const recYearNum = parseInt(recYear);
+            return (recYearNum === targetYear || recYearNum === (targetYear - 1));
         }
         
         return true; 
@@ -696,24 +748,33 @@
 
     // Core Operational Calculations Framework update loop
     function renderMasterLists() {
-        // --- FILTERS SUB-ROUTINE EVALUATIONS ---
         let filteredIncome = records.income.filter(item => isRecordInCurrentTimeframe(item.date));
         let filteredExpenses = records.expenses.filter(item => isRecordInCurrentTimeframe(item.date));
 
-        // Math totals allocations logic
         let totalTimeframeIncome = filteredIncome.reduce((s, i) => s + i.amount, 0);
         let totalTimeframeSpent = filteredExpenses.reduce((s, e) => s + e.amount, 0);
         
-        // Append baseline subscriptions parameters calculations 
         let recurringMonthlyIncSum = records.recurringInc.reduce((s, i) => s + i.amount, 0);
         let recurringMonthlyExpSum = records.recurringExp.reduce((s, e) => s + e.amount, 0);
 
         if (currentIntervalMode === "day") {
             totalTimeframeIncome += (recurringMonthlyIncSum / 30);
             totalTimeframeSpent += (recurringMonthlyExpSum / 30);
+        } else if (currentIntervalMode === "week") {
+            totalTimeframeIncome += (recurringMonthlyIncSum * 12 / 52);
+            totalTimeframeSpent += (recurringMonthlyExpSum * 12 / 52);
+        } else if (currentIntervalMode === "biweek") {
+            totalTimeframeIncome += (recurringMonthlyIncSum * 12 / 26);
+            totalTimeframeSpent += (recurringMonthlyExpSum * 12 / 26);
         } else if (currentIntervalMode === "year") {
             totalTimeframeIncome += (recurringMonthlyIncSum * 12);
             totalTimeframeSpent += (recurringMonthlyExpSum * 12);
+        } else if (currentIntervalMode === "2year") {
+            totalTimeframeIncome += (recurringMonthlyIncSum * 24);
+            totalTimeframeSpent += (recurringMonthlyExpSum * 24);
+        } else if (currentIntervalMode === "alltime") {
+            totalTimeframeIncome += (recurringMonthlyIncSum * 36); 
+            totalTimeframeSpent += (recurringMonthlyExpSum * 36);
         } else { 
             totalTimeframeIncome += recurringMonthlyIncSum;
             totalTimeframeSpent += recurringMonthlyExpSum;
@@ -722,15 +783,15 @@
         let dynamicCalculatedNetSavings = totalTimeframeIncome * (strategicSavingsPercent / 100);
         let dynamicCalculatedPortfolioAssets = records.portfolio.reduce((s, p) => s + (p.shares * p.price), 0);
         let definitiveNetBalanceResult = totalTimeframeIncome - totalTimeframeSpent;
+        let calculatedNetWorthTotal = definitiveNetBalanceResult + dynamicCalculatedPortfolioAssets;
 
-        // Display update targets updates executions
         document.getElementById('dash-income').innerText = formatCurrency(totalTimeframeIncome);
         document.getElementById('dash-burn').innerText = formatCurrency(totalTimeframeSpent);
         document.getElementById('dash-savings').innerText = formatCurrency(dynamicCalculatedNetSavings);
         document.getElementById('dash-stocks').innerText = formatCurrency(dynamicCalculatedPortfolioAssets);
         document.getElementById('dash-budget').innerText = formatCurrency(definitiveNetBalanceResult);
+        document.getElementById('dash-networth').innerText = formatCurrency(calculatedNetWorthTotal);
 
-        // --- RENDER CARD 1 LIST: ONETIME LOGGING MANIFEST HISTORY LIST ---
         let onetimeListDiv = document.getElementById('onetime-list');
         if(filteredIncome.length === 0) {
             onetimeListDiv.innerText = "No income records in current filter window.";
@@ -741,7 +802,6 @@
             });
         }
 
-        // --- RENDER CARD 2 LIST: WHERE YOUR MONEY COMES FROM SUMMARY MAPS ---
         let incomeSourceSummaryDiv = document.getElementById('income-sources-list');
         if(filteredIncome.length === 0 && recurringMonthlyIncSum === 0) {
             incomeSourceSummaryDiv.innerText = "No active operational income sources metrics verified.";
@@ -749,14 +809,15 @@
             incomeSourceSummaryDiv.innerHTML = "";
             let sourceMapData = {};
             filteredIncome.forEach(i => sourceMapData[i.source] = (sourceMapData[i.source] || 0) + i.amount);
-            if(recurringMonthlyIncSum > 0) sourceMapData["Contractual Recurring Streams"] = (sourceMapData["Contractual Recurring Streams"] || 0) + recurringMonthlyIncSum;
-            
+            if(recurringMonthlyIncSum > 0) {
+                let suffix = (currentIntervalMode === 'year' || currentIntervalMode === '2year' || currentIntervalMode === 'alltime') ? ' (Aggregated Streams)' : ' (Recurring Streams)';
+                sourceMapData["Contractual Income" + suffix] = recurringMonthlyIncSum;
+            }
             for(let key in sourceMapData) {
                 incomeSourceSummaryDiv.innerHTML += `<div class="ledger-item"><span>💼 ${key}</span><span style="color:var(--success)">${formatCurrency(sourceMapData[key])}</span></div>`;
             }
         }
 
-        // --- RENDER CARD 3 LIST: WHERE YOUR MONEY GOES SUMMARY MAPS ---
         let spendingBreakdownSummaryDiv = document.getElementById('spending-breakdown-list');
         if(filteredExpenses.length === 0 && recurringMonthlyExpSum === 0) {
             spendingBreakdownSummaryDiv.innerText = "No active spending metrics verified.";
@@ -764,14 +825,15 @@
             spendingBreakdownSummaryDiv.innerHTML = "";
             let spendingMapData = {};
             filteredExpenses.forEach(e => spendingMapData[e.category] = (spendingMapData[e.category] || 0) + e.amount);
-            if(recurringMonthlyExpSum > 0) spendingMapData["Fixed Subscriptions Costs"] = (spendingMapData["Fixed Subscriptions Costs"] || 0) + recurringMonthlyExpSum;
-            
+            if(recurringMonthlyExpSum > 0) {
+                let suffix = (currentIntervalMode === 'year' || currentIntervalMode === '2year' || currentIntervalMode === 'alltime') ? ' (Aggregated Subscriptions)' : ' (Fixed Subscriptions)';
+                spendingMapData["Fixed Costs" + suffix] = recurringMonthlyExpSum;
+            }
             for(let key in spendingMapData) {
                 spendingBreakdownSummaryDiv.innerHTML += `<div class="ledger-item"><span>🛍️ ${key}</span><span style="color:var(--danger)">${formatCurrency(spendingMapData[key])}</span></div>`;
             }
         }
 
-        // --- RENDER CARD 4 LIST: CHRONOLOGICAL SEARCHABLE LEDGER OUTFLOW MATRIX LIST ---
         let searchString = document.getElementById('search-box').value.toLowerCase();
         let catSelectionFilter = document.getElementById('filter-category').value;
         let matrixLedgerDiv = document.getElementById('expense-day-matrix');
@@ -800,19 +862,16 @@
             });
         }
 
-        // Core system metrics updates loops subhooks calls execution
         renderBudgetOverviewMatrix(filteredExpenses);
         buildIncomeChart(filteredIncome, recurringMonthlyIncSum);
         buildSpendingChart(filteredExpenses, recurringMonthlyExpSum);
     }
 
-    // Input actions processors metrics updates logic mappings
     function addOneTimeMoney() {
         let src = document.getElementById('onetime-source').value;
         let amt = parseFloat(document.getElementById('onetime-amount').value);
         let dateVal = document.getElementById('onetime-date').value;
-        if(!amt || amt <= 0 || !dateVal) return alert("Please specify valid amount values and select target execution date parameters.");
-
+        if(!amt || amt <= 0 || !dateVal) return alert("Please specify valid values.");
         records.income.push({ source: src, amount: amt, date: dateVal });
         document.getElementById('onetime-amount').value = "";
         renderMasterLists();
@@ -823,8 +882,7 @@
         let amt = parseFloat(document.getElementById('exp-amount').value);
         let cat = document.getElementById('exp-category').value;
         let dateVal = document.getElementById('exp-date').value;
-        if(!amt || amt <= 0 || !dateVal) return alert("Please fill standard numerical costs values and verification dates items inputs.");
-
+        if(!amt || amt <= 0 || !dateVal) return alert("Please fill standard inputs.");
         records.expenses.push({ name: name, amount: amt, category: cat, date: dateVal, status: 'NEW' });
         document.getElementById('exp-name').value = "";
         document.getElementById('exp-amount').value = "";
@@ -841,8 +899,7 @@
         let name = document.getElementById('exp-name').value;
         let amt = document.getElementById('exp-amount').value;
         let cat = document.getElementById('exp-category').value;
-        if(!name || !amt) return alert("Populate workflow inputs targets fields first.");
-
+        if(!name || !amt) return alert("Populate workflow fields first.");
         let wrapper = document.getElementById('quick-chips-wrapper');
         wrapper.innerHTML += `<div class="chip" onclick="applyTemplate('${name}', ${amt}, '${cat}')">📌 ${name} ($${amt})</div>`;
     }
@@ -857,15 +914,12 @@
         document.getElementById('filter-sw-all').classList.remove('active');
         document.getElementById('filter-sw-new').classList.remove('active');
         document.getElementById('filter-sw-reviewed').classList.remove('active');
-        
         if(mode === 'ALL') document.getElementById('filter-sw-all').classList.add('active');
         if(mode === 'NEW') document.getElementById('filter-sw-new').classList.add('active');
         if(mode === 'REVIEWED') document.getElementById('filter-sw-reviewed').classList.add('active');
-        
         renderMasterLists();
     }
 
-    // Dynamic configuration caps widgets
     function renderBudgetLimitWidget() {
         let cat = document.getElementById('budget-cat-select').value;
         document.getElementById('budget-limit-info').innerText = `Configured allowance tracking threshold profile cap limit for ${cat} runs at: ${formatCurrency(categoryLimits[cat])}`;
@@ -874,8 +928,7 @@
     function saveBudgetLimit() {
         let cat = document.getElementById('budget-cat-select').value;
         let inputVal = parseFloat(document.getElementById('budget-limit-input').value);
-        if(!inputVal || inputVal <= 0) return alert("Provide real standard values limit matrix settings configuration numerical numbers inputs.");
-
+        if(!inputVal || inputVal <= 0) return alert("Provide real numbers inputs.");
         categoryLimits[cat] = inputVal;
         renderBudgetLimitWidget();
         renderMasterLists();
@@ -884,7 +937,6 @@
     function renderBudgetOverviewMatrix(currentFrameExpenses) {
         let matrix = document.getElementById('copilot-budget-matrix');
         matrix.innerHTML = "";
-        
         let categories = Object.keys(categoryLimits);
         categories.forEach(cat => {
             let limit = categoryLimits[cat];
@@ -897,17 +949,14 @@
         if(matrix.innerHTML === "") matrix.innerText = "All tracking operational components functioning inside safe condition models profiles balances.";
     }
 
-    // Recurring Page methods mapping
     function addRecurringIncomeStream() {
         let label = document.getElementById('inc-name').value || "Monthly Allocation Income Stream";
         let val = parseFloat(document.getElementById('inc-amount').value);
-        if(!val || val <= 0) return alert("Provide verification amounts inputs.");
-        
+        if(!val || val <= 0) return alert("Provide verification inputs.");
         records.recurringInc.push({ label: label, amount: val });
         let container = document.getElementById('income-list');
         if(container.innerText.includes("No recurring")) container.innerHTML = "";
         container.innerHTML += `<div class="ledger-item"><span>💼 ${label}</span><span style="color:var(--success)">+${formatCurrency(val)}/mo</span></div>`;
-        
         document.getElementById('inc-name').value = "";
         document.getElementById('inc-amount').value = "";
         renderMasterLists();
@@ -916,41 +965,33 @@
     function addRecurringSpentSubscription() {
         let label = document.getElementById('rec-name').value || "Subscription Package Link Cost";
         let val = parseFloat(document.getElementById('rec-amount').value);
-        if(!val || val <= 0) return alert("Provide numeric tracking value requirements.");
-
+        if(!val || val <= 0) return alert("Provide tracking numeric requirements.");
         records.recurringExp.push({ label: label, amount: val });
         let container = document.getElementById('recurring-list');
         if(container.innerText.includes("No monthly")) container.innerHTML = "";
         container.innerHTML += `<div class="ledger-item"><span>CNTRCT 💳 ${label}</span><span style="color:var(--danger)">-${formatCurrency(val)}/mo</span></div>`;
-        
         document.getElementById('rec-name').value = "";
         document.getElementById('rec-amount').value = "";
         renderMasterLists();
     }
 
-    // Analytics Portfolios mapping logic
     function addStockAssetItem() {
         let ticker = document.getElementById('stock-ticker').value.toUpperCase();
         let shares = parseFloat(document.getElementById('stock-shares').value);
         let price = parseFloat(document.getElementById('stock-price').value);
-        if(!ticker || !shares || !price) return alert("Please fill operational matrix arrays elements values targets.");
-
+        if(!ticker || !shares || !price) return alert("Please fill fields.");
         records.portfolio.push({ ticker: ticker, shares: shares, price: price });
-        
         let container = document.getElementById('stock-list');
         if(container.innerText.includes("No individual")) container.innerHTML = "";
         container.innerHTML += `<div class="ledger-item"><span>📈 ${ticker} Asset Allocation unit</span><span>${shares} Units held @ basis price cost ${formatCurrency(price)}</span></div>`;
-        
         let currentTotalInvested = records.portfolio.reduce((sum, item) => sum + (item.shares * item.price), 0);
         document.getElementById('portfolio-total-value').innerText = formatCurrency(currentTotalInvested);
-        
         document.getElementById('stock-ticker').value = "";
         document.getElementById('stock-shares').value = "";
         document.getElementById('stock-price').value = "";
         renderMasterLists();
     }
 
-    // View Panel Toggling Sub-routines
     function toggleIncomeView(v) {
         document.getElementById('income-view-list').style.display = v === 'list' ? 'block' : 'none';
         document.getElementById('income-view-chart').style.display = v === 'chart' ? 'block' : 'none';
@@ -965,17 +1006,14 @@
         document.getElementById('exp-toggle-chart').classList.toggle('active', v==='chart');
     }
 
-    // Charting Engine Implementation Systems
     function buildIncomeChart(filteredIncome, recurringSum) {
         let canvasElement = document.getElementById('incomeChart');
         if(!canvasElement) return;
         let ctx = canvasElement.getContext('2d');
         if(incomeChartRef) incomeChartRef.destroy();
-        
         let sources = filteredIncome.map(i => i.source);
         let amts = filteredIncome.map(i => i.amount);
         if(recurringSum > 0) { sources.push("Recurring Streams"); amts.push(recurringSum); }
-
         incomeChartRef = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -991,11 +1029,9 @@
         if(!canvasElement) return;
         let ctx = canvasElement.getContext('2d');
         if(spendingChartRef) spendingChartRef.destroy();
-
         let categories = ["Food", "Transport", "Housing", "Entertainment", "Shopping", "Health", "Education"];
         let dataMapValues = categories.map(cat => filteredExpenses.filter(e => e.category === cat).reduce((s,e)=> s+e.amount, 0));
         if(recurringSum > 0) { categories.push("Subscriptions"); dataMapValues.push(recurringSum); }
-
         spendingChartRef = new Chart(ctx, {
             type: 'polarArea',
             data: {
@@ -1011,10 +1047,8 @@
         if(!canvasElement) return;
         let ctx = canvasElement.getContext('2d');
         if(analyticsChartRef) analyticsChartRef.destroy();
-
         let tickers = records.portfolio.map(p => p.ticker);
         let allocations = records.portfolio.map(p => p.shares * p.price);
-
         analyticsChartRef = new Chart(ctx, {
             type: 'pie',
             data: {
@@ -1025,7 +1059,6 @@
         });
     }
 
-    // Preferences & Settings Engine Commands
     function applyTheme(theme) {
         if(theme === 'light') { document.body.classList.add('light-theme'); } 
         else { document.body.classList.remove('light-theme'); }
@@ -1036,12 +1069,10 @@
         renderMasterLists();
     }
 
-    // Structured CSV Engine Data Exporter
     function downloadStructuredCSV() {
         let csvContent = "data:text/csv;charset=utf-8,Type,Label,Amount,ExecutionDate\n";
         records.income.forEach(i => csvContent += `Income,${i.source},${i.amount},${i.date}\n`);
         records.expenses.forEach(e => csvContent += `Expense,${e.name},${e.amount},${e.date}\n`);
-        
         let encodedUri = encodeURI(csvContent);
         let link = document.createElement("a");
         link.setAttribute("href", encodedUri);
