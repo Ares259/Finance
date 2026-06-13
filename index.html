@@ -307,7 +307,7 @@
                 <button class="interval-btn" id="btn-biweek" onclick="changeInterval('biweek')">Bi-weekly</button>
                 <button class="interval-btn active" id="btn-month" onclick="changeInterval('month')">Monthly</button>
                 <button class="interval-btn" id="btn-year" onclick="changeInterval('year')">Yearly</button>
-                <button class="interval-btn" id="btn-2year" onclick="changeInterval('2year')">2-Year Span</button>
+                <button class="interval-btn" id="btn-4year" onclick="changeInterval('4year')">4-Year Span</button>
                 <button class="interval-btn" id="btn-alltime" onclick="changeInterval('alltime')">All-Time</button>
             </div>
             
@@ -607,7 +607,7 @@
 </div>
 
 <script>
-    // Global Local Application Arrays (Database memory simulations)
+    // Primary database matrix
     let records = { 
         income: [], 
         expenses: [], 
@@ -618,29 +618,41 @@
 
     let categoryLimits = { Food: 300, Transport: 150, Housing: 1000, Entertainment: 200, Shopping: 200, Health: 100, Education: 100 };
     
-    // Default Engine Settings states
     let currentIntervalMode = "month"; 
     let currentVerificationState = "ALL";
     let strategicSavingsPercent = 20;
 
-    // Charts references container
     let incomeChartRef = null, spendingChartRef = null, analyticsChartRef = null;
+
+    function persistDataToCache() {
+        localStorage.setItem('budget_records', JSON.stringify(records));
+        localStorage.setItem('budget_limits', JSON.stringify(categoryLimits));
+        localStorage.setItem('budget_savings_rule', strategicSavingsPercent);
+    }
 
     // Initialization setups 
     window.onload = function() {
-        // Dynamic generation architecture for Year Selector Dropdown
+        const savedRecords = localStorage.getItem('budget_records');
+        const savedLimits = localStorage.getItem('budget_limits');
+        const savedSavingsRule = localStorage.getItem('budget_savings_rule');
+
+        if (savedRecords) records = JSON.parse(savedRecords);
+        if (savedLimits) categoryLimits = JSON.parse(savedLimits);
+        if (savedSavingsRule) {
+            strategicSavingsPercent = parseFloat(savedSavingsRule);
+            document.getElementById('savings-select').value = savedSavingsRule;
+        }
+
         const yearSelect = document.getElementById('year-filter');
         const currentYear = new Date().getFullYear();
-        yearSelect.innerHTML = ""; // Clear placeholders
+        yearSelect.innerHTML = "";
         
         for (let year = 2024; year <= 2100; year++) {
             const option = document.createElement("option");
             option.value = year;
             option.textContent = year;
 
-            if (year === currentYear) {
-                option.selected = true;
-            }
+            if (year === currentYear) option.selected = true;
             yearSelect.appendChild(option);
         }
 
@@ -651,12 +663,12 @@
         document.getElementById('exp-time').value = "12:00";
         
         renderBudgetLimitWidget();
+        renderRecurringListsFromMemory(); 
         renderMasterLists();
     };
 
     function formatCurrency(v) { return "$" + parseFloat(v || 0).toFixed(2); }
 
-    // Navigation Panels system
     function showPage(pageId) {
         document.querySelectorAll('.view-page').forEach(p => p.style.display = 'none');
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -667,7 +679,6 @@
         if (pageId === 'analytics') { buildAnalyticsPieChart(); }
     }
 
-    // Interval Selector Engine Adjustment
     function changeInterval(mode) {
         currentIntervalMode = mode;
         document.querySelectorAll('.interval-selector .interval-btn').forEach(b => b.classList.remove('active'));
@@ -675,23 +686,22 @@
         
         let labelText = mode.charAt(0).toUpperCase() + mode.slice(1);
         if (mode === 'biweek') labelText = "Bi-weekly";
-        if (mode === '2year') labelText = "2-Year Span";
+        if (mode === '4year') labelText = "4-Year Span";
         if (mode === 'alltime') labelText = "All-Time Historical";
         document.getElementById('view-title').innerText = labelText;
         
         const labelObj = document.getElementById('date-picker-label');
         if (mode === 'day') labelObj.innerText = "Select Day:";
-        if (mode === 'week') labelObj.innerText = "Select Week (Any day within):";
-        if (mode === 'biweek') labelObj.innerText = "Select Bi-week (Any day within):";
+        if (mode === 'week') labelObj.innerText = "Select Week:";
+        if (mode === 'biweek') labelObj.innerText = "Select Bi-week:";
 
         document.getElementById('filter-box-day').style.display = (mode === 'day' || mode === 'week' || mode === 'biweek') ? 'block' : 'none';
         document.getElementById('filter-box-month').style.display = (mode === 'month') ? 'block' : 'none';
-        document.getElementById('filter-box-year').style.display = (mode === 'year' || mode === 'month' || mode === '2year') ? 'block' : 'none';
+        document.getElementById('filter-box-year').style.display = (mode === 'year' || mode === 'month' || mode === '4year') ? 'block' : 'none';
         
         renderMasterLists();
     }
 
-    // Comprehensive Dynamic Timeframe Filter Engine
     function isRecordInCurrentTimeframe(recordDateStr) {
         if (!recordDateStr) return true; 
         
@@ -701,7 +711,6 @@
         const targetDateStr = document.getElementById('date-filter').value;
         
         if (currentIntervalMode === "alltime") return true;
-
         if (currentIntervalMode === "day") return recordDateStr === targetDateStr;
         
         if (currentIntervalMode === "week") {
@@ -737,16 +746,37 @@
             return recYear === targetYear;
         }
 
-        if (currentIntervalMode === "2year") {
+        if (currentIntervalMode === "4year") {
             const targetYear = parseInt(document.getElementById('year-filter').value);
             const recYearNum = parseInt(recYear);
-            return (recYearNum === targetYear || recYearNum === (targetYear - 1));
+            return (recYearNum <= targetYear && recYearNum > (targetYear - 4));
         }
         
         return true; 
     }
 
-    // Core Operational Calculations Framework update loop
+    function renderRecurringListsFromMemory() {
+        let incContainer = document.getElementById('income-list');
+        if(records.recurringInc.length > 0) incContainer.innerHTML = "";
+        records.recurringInc.forEach(i => {
+            incContainer.innerHTML += `<div class="ledger-item"><span>💼 ${i.label}</span><span style="color:var(--success)">+${formatCurrency(i.amount)}/mo</span></div>`;
+        });
+
+        let expContainer = document.getElementById('recurring-list');
+        if(records.recurringExp.length > 0) expContainer.innerHTML = "";
+        records.recurringExp.forEach(e => {
+            expContainer.innerHTML += `<div class="ledger-item"><span>CNTRCT 💳 ${e.label}</span><span style="color:var(--danger)">-${formatCurrency(e.amount)}/mo</span></div>`;
+        });
+
+        let stockContainer = document.getElementById('stock-list');
+        if(records.portfolio.length > 0) stockContainer.innerHTML = "";
+        records.portfolio.forEach(p => {
+            stockContainer.innerHTML += `<div class="ledger-item"><span>📈 ${p.ticker} Asset Allocation unit</span><span>${p.shares} Units held @ basis price cost ${formatCurrency(p.price)}</span></div>`;
+        });
+        let currentTotalInvested = records.portfolio.reduce((sum, item) => sum + (item.shares * item.price), 0);
+        document.getElementById('portfolio-total-value').innerText = formatCurrency(currentTotalInvested);
+    }
+
     function renderMasterLists() {
         let filteredIncome = records.income.filter(item => isRecordInCurrentTimeframe(item.date));
         let filteredExpenses = records.expenses.filter(item => isRecordInCurrentTimeframe(item.date));
@@ -769,12 +799,12 @@
         } else if (currentIntervalMode === "year") {
             totalTimeframeIncome += (recurringMonthlyIncSum * 12);
             totalTimeframeSpent += (recurringMonthlyExpSum * 12);
-        } else if (currentIntervalMode === "2year") {
-            totalTimeframeIncome += (recurringMonthlyIncSum * 24);
-            totalTimeframeSpent += (recurringMonthlyExpSum * 24);
+        } else if (currentIntervalMode === "4year") {
+            totalTimeframeIncome += (recurringMonthlyIncSum * 48);
+            totalTimeframeSpent += (recurringMonthlyExpSum * 48);
         } else if (currentIntervalMode === "alltime") {
-            totalTimeframeIncome += (recurringMonthlyIncSum * 36); 
-            totalTimeframeSpent += (recurringMonthlyExpSum * 36);
+            totalTimeframeIncome += (recurringMonthlyIncSum * 12); 
+            totalTimeframeSpent += (recurringMonthlyExpSum * 12);
         } else { 
             totalTimeframeIncome += recurringMonthlyIncSum;
             totalTimeframeSpent += recurringMonthlyExpSum;
@@ -810,7 +840,7 @@
             let sourceMapData = {};
             filteredIncome.forEach(i => sourceMapData[i.source] = (sourceMapData[i.source] || 0) + i.amount);
             if(recurringMonthlyIncSum > 0) {
-                let suffix = (currentIntervalMode === 'year' || currentIntervalMode === '2year' || currentIntervalMode === 'alltime') ? ' (Aggregated Streams)' : ' (Recurring Streams)';
+                let suffix = (currentIntervalMode === 'year' || currentIntervalMode === '4year' || currentIntervalMode === 'alltime') ? ' (Aggregated Streams)' : ' (Recurring Streams)';
                 sourceMapData["Contractual Income" + suffix] = recurringMonthlyIncSum;
             }
             for(let key in sourceMapData) {
@@ -826,7 +856,7 @@
             let spendingMapData = {};
             filteredExpenses.forEach(e => spendingMapData[e.category] = (spendingMapData[e.category] || 0) + e.amount);
             if(recurringMonthlyExpSum > 0) {
-                let suffix = (currentIntervalMode === 'year' || currentIntervalMode === '2year' || currentIntervalMode === 'alltime') ? ' (Aggregated Subscriptions)' : ' (Fixed Subscriptions)';
+                let suffix = (currentIntervalMode === 'year' || currentIntervalMode === '4year' || currentIntervalMode === 'alltime') ? ' (Aggregated Subscriptions)' : ' (Fixed Subscriptions)';
                 spendingMapData["Fixed Costs" + suffix] = recurringMonthlyExpSum;
             }
             for(let key in spendingMapData) {
@@ -874,6 +904,7 @@
         if(!amt || amt <= 0 || !dateVal) return alert("Please specify valid values.");
         records.income.push({ source: src, amount: amt, date: dateVal });
         document.getElementById('onetime-amount').value = "";
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -886,6 +917,7 @@
         records.expenses.push({ name: name, amount: amt, category: cat, date: dateVal, status: 'NEW' });
         document.getElementById('exp-name').value = "";
         document.getElementById('exp-amount').value = "";
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -906,6 +938,7 @@
 
     function verifyTransaction(globalIndex) {
         records.expenses[globalIndex].status = 'REVIEWED';
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -931,6 +964,7 @@
         if(!inputVal || inputVal <= 0) return alert("Provide real numbers inputs.");
         categoryLimits[cat] = inputVal;
         renderBudgetLimitWidget();
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -959,6 +993,7 @@
         container.innerHTML += `<div class="ledger-item"><span>💼 ${label}</span><span style="color:var(--success)">+${formatCurrency(val)}/mo</span></div>`;
         document.getElementById('inc-name').value = "";
         document.getElementById('inc-amount').value = "";
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -972,6 +1007,7 @@
         container.innerHTML += `<div class="ledger-item"><span>CNTRCT 💳 ${label}</span><span style="color:var(--danger)">-${formatCurrency(val)}/mo</span></div>`;
         document.getElementById('rec-name').value = "";
         document.getElementById('rec-amount').value = "";
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -989,6 +1025,7 @@
         document.getElementById('stock-ticker').value = "";
         document.getElementById('stock-shares').value = "";
         document.getElementById('stock-price').value = "";
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -1066,6 +1103,7 @@
 
     function updateSavingsRule(val) {
         strategicSavingsPercent = parseFloat(val) || 0;
+        persistDataToCache();
         renderMasterLists();
     }
 
@@ -1084,12 +1122,19 @@
 
     function resetSystemData() {
         if(confirm("Are you sure you want to completely clear out data metrics? All progress deletes.")) {
+            localStorage.clear();
             records = { income: [], expenses: [], recurringInc: [], recurringExp: [], portfolio: [] };
+            categoryLimits = { Food: 300, Transport: 150, Housing: 1000, Entertainment: 200, Shopping: 200, Health: 100, Education: 100 };
+            strategicSavingsPercent = 20;
+            document.getElementById('savings-select').value = "20";
+            
             document.getElementById('onetime-list').innerText = "No income records in current filter window.";
             document.getElementById('expense-day-matrix').innerText = "No matches.";
             document.getElementById('income-list').innerText = "No recurring streams parsed.";
             document.getElementById('recurring-list').innerText = "No monthly subscriptions listed.";
             document.getElementById('stock-list').innerText = "No items currently active in allocation.";
+            
+            renderBudgetLimitWidget();
             renderMasterLists();
             showPage('dashboard');
         }
